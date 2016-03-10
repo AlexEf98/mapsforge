@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.mapsforge.core.model.Tile;
 import org.mapsforge.core.util.LRUCache;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.renderer.PolylineContainer;
 import org.mapsforge.map.reader.PointOfInterest;
 import org.mapsforge.map.rendertheme.RenderCallback;
@@ -109,8 +110,8 @@ public class RenderTheme {
 	 * @param way
 	 *            the way.
 	 */
-	public void matchClosedWay(RenderCallback renderCallback, PolylineContainer way) {
-		matchWay(renderCallback, way, Closed.YES);
+	public void matchClosedWay(RenderCallback renderCallback, PolylineContainer way, MapModel mapModel) {
+		matchWay(renderCallback, way, Closed.YES, mapModel);
 	}
 
 	/**
@@ -121,8 +122,8 @@ public class RenderTheme {
 	 * @param way
 	 *            the way.
 	 */
-	public void matchLinearWay(RenderCallback renderCallback, PolylineContainer way) {
-		matchWay(renderCallback, way, Closed.NO);
+	public void matchLinearWay(RenderCallback renderCallback, PolylineContainer way, MapModel mapModel) {
+		matchWay(renderCallback, way, Closed.NO, mapModel);
 	}
 
 	/**
@@ -201,14 +202,14 @@ public class RenderTheme {
 		this.levels = levels;
 	}
 
-	private void matchWay(RenderCallback renderCallback, PolylineContainer way, Closed closed) {
+	private void matchWay(RenderCallback renderCallback, PolylineContainer way, Closed closed, MapModel mapModel) {
 		MatchingCacheKey matchingCacheKey = new MatchingCacheKey(way.getTags(), way.getTile().zoomLevel, closed);
 
 		List<RenderInstruction> matchingList = this.wayMatchingCache.get(matchingCacheKey);
 		if (matchingList != null) {
 			// cache hit
 			for (int i = 0, n = matchingList.size(); i < n; ++i) {
-				matchingList.get(i).renderWay(renderCallback, way);
+				matchingList.get(i).renderWay(renderCallback, way, mapModel);
 			}
 			return;
 		}
@@ -216,7 +217,7 @@ public class RenderTheme {
 		// cache miss
 		matchingList = new ArrayList<RenderInstruction>();
 		for (int i = 0, n = this.rulesList.size(); i < n; ++i) {
-			this.rulesList.get(i).matchWay(renderCallback, way, way.getTile(), closed, matchingList);
+			this.rulesList.get(i).matchWay(renderCallback, way, way.getTile(), closed, matchingList, mapModel);
 		}
 
 		this.wayMatchingCache.put(matchingCacheKey, matchingList);

@@ -100,7 +100,7 @@ public final class RAMTileBasedDataProcessor extends BaseTileBasedDataProcessor 
 
 		if (tdWay.isCoastline()) {
 			// find matching tiles on zoom level 12
-			Set<TileCoordinate> coastLineTiles = GeoUtils.mapWayToTiles(tdWay, TileInfo.TILE_INFO_ZOOMLEVEL, 0);
+			Set<TileCoordinate> coastLineTiles = GeoUtils.mapWayToTiles(tdWay, TileInfo.TILE_INFO_ZOOMLEVEL, 0, mapModel);
 			for (TileCoordinate tileCoordinate : coastLineTiles) {
 				TLongHashSet coastlines = this.tilesToCoastlines.get(tileCoordinate);
 				if (coastlines == null) {

@@ -20,6 +20,7 @@ import java.io.IOException;
 import org.mapsforge.core.graphics.Bitmap;
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.renderer.PolylineContainer;
 import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.reader.PointOfInterest;
@@ -103,7 +104,7 @@ public abstract class RenderInstruction {
 	 * @param way
 	 *            the way.
 	 */
-	public abstract void renderWay(RenderCallback renderCallback, PolylineContainer way);
+	public abstract void renderWay(RenderCallback renderCallback, PolylineContainer way, MapModel mapModel);
 
 	/**
 	 * Scales the stroke width of this RenderInstruction by the given factor.
@@ -128,7 +129,7 @@ public abstract class RenderInstruction {
 			return null;
 		}
 
-		return XmlUtils.createBitmap(graphicFactory, displayModel, relativePathPrefix, src, (int) width, (int) height, percent);
+		return XmlUtils.createBitmap(graphicFactory, displayModel.getScaleFactor(), relativePathPrefix, src, (int) width, (int) height, percent);
 	}
 
 	protected ResourceScaling fromValue(String value) {

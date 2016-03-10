@@ -22,7 +22,7 @@ import org.mapsforge.core.graphics.Canvas;
 import org.mapsforge.core.graphics.GraphicContext;
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.model.MapPosition;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.model.MapViewDimension;
 import org.mapsforge.map.model.MapViewPosition;
@@ -131,8 +131,8 @@ public abstract class MapScaleBar {
 	 */
 	protected ScaleBarLengthAndValue calculateScaleBarLengthAndValue(DistanceUnitAdapter unitAdapter) {
 		this.prevMapPosition = this.mapViewPosition.getMapPosition();
-		double groundResolution = MercatorProjection.calculateGroundResolution(this.prevMapPosition.latLong.latitude,
-				MercatorProjection.getMapSize(this.prevMapPosition.zoomLevel, this.displayModel.getTileSize()));
+		MapProjection projection =  this.displayModel.getProjection(this.prevMapPosition.zoomLevel);
+		double groundResolution = projection.calculateGroundResolution(this.prevMapPosition.latLong.latitude);
 
 		groundResolution = groundResolution / unitAdapter.getMeterRatio();
 		int[] scaleBarValues = unitAdapter.getScaleBarValues();

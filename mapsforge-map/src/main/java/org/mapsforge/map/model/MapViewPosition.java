@@ -18,8 +18,7 @@ package org.mapsforge.map.model;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
-import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.model.common.Observable;
 import org.mapsforge.map.model.common.Persistable;
 import org.mapsforge.map.model.common.PreferencesFacade;
@@ -129,13 +128,13 @@ public class MapViewPosition extends Observable implements Persistable {
 				final int totalSteps = 25; // Define the Step Number
 				int signX = 1; // Define the Sign for Horizontal Movement
 				int signY = 1; // Define the Sign for Vertical Movement
-				long mapSize = MercatorProjection.getMapSize(getZoomLevel(), displayModel.getTileSize());
+				MapProjection projection = displayModel.getProjection(getZoomLevel());
 
-				final double targetPixelX = MercatorProjection.longitudeToPixelX(pos.longitude, mapSize);
-				final double targetPixelY = MercatorProjection.latitudeToPixelY(pos.latitude, mapSize);
+				final double targetPixelX = projection.longitudeToPixelX(pos.longitude);
+				final double targetPixelY = projection.latitudeToPixelY(pos.latitude);
 
-				final double currentPixelX = MercatorProjection.longitudeToPixelX(longitude, mapSize);
-				final double currentPixelY = MercatorProjection.latitudeToPixelY(latitude, mapSize);
+				final double currentPixelX = projection.longitudeToPixelX(longitude);
+				final double currentPixelY = projection.latitudeToPixelY(latitude);
 
 				final double stepSizeX = Math.abs(targetPixelX - currentPixelX) / totalSteps;
 				final double stepSizeY = Math.abs(targetPixelY - currentPixelY) / totalSteps;
@@ -163,7 +162,7 @@ public class MapViewPosition extends Observable implements Persistable {
 	}
 
 	public boolean animationInProgress() {
-		return this.scaleFactor != MercatorProjection.zoomLevelToScaleFactor(this.zoomLevel);
+		return this.scaleFactor != Math.pow(2, this.zoomLevel);
 	}
 
 	public void destroy() {
@@ -199,22 +198,6 @@ public class MapViewPosition extends Observable implements Persistable {
 
 	public synchronized LatLong getPivot() {
 		return this.pivot;
-	}
-
-	/**
-	 * The pivot point is the point the map zooms around. If the map zooms around its center null is returned, otherwise
-	 * the zoom-specific x/y pixel coordinates for the MercatorProjection (note: not the x/y coordinates for the map
-	 * view or the frame buffer, the MapViewPosition knows nothing about them).
-	 *
-	 * @param zoomLevel the zoomlevel to compute the x/y coordinates for
-	 * @return the x/y coordinates of the map pivot point if set or null otherwise.
-	 */
-
-	public synchronized Point getPivotXY(byte zoomLevel) {
-		if (this.pivot != null) {
-			return MercatorProjection.getPixel(this.pivot, MercatorProjection.getMapSize(zoomLevel, displayModel.getTileSize()));
-		}
-		return null;
 	}
 
 	public synchronized double getScaleFactor() {
@@ -280,16 +263,16 @@ public class MapViewPosition extends Observable implements Persistable {
 	 */
 	public void moveCenterAndZoom(double moveHorizontal, double moveVertical, byte zoomLevelDiff) {
 		synchronized (this) {
-			long mapSize = MercatorProjection.getMapSize(this.zoomLevel, this.displayModel.getTileSize());
-			double pixelX = MercatorProjection.longitudeToPixelX(this.longitude, mapSize)
+			MapProjection projection = this.displayModel.getProjection(this.zoomLevel);
+			double pixelX = projection.longitudeToPixelX(this.longitude)
 					- moveHorizontal;
-			double pixelY = MercatorProjection.latitudeToPixelY(this.latitude, mapSize) - moveVertical;
+			double pixelY = projection.latitudeToPixelY(this.latitude) - moveVertical;
 
-			pixelX = Math.min(Math.max(0, pixelX), mapSize);
-			pixelY = Math.min(Math.max(0, pixelY), mapSize);
+			pixelX = Math.min(Math.max(0, pixelX), projection.getMapWidth());
+			pixelY = Math.min(Math.max(0, pixelY), projection.getMapHeight());
 
-			double newLatitude = MercatorProjection.pixelYToLatitude(pixelY, mapSize);
-			double newLongitude = MercatorProjection.pixelXToLongitude(pixelX, mapSize);
+			double newLatitude = projection.pixelYToLatitude(pixelY);
+			double newLongitude = projection.pixelXToLongitude(pixelX);
 			setCenterInternal(new LatLong(newLatitude, newLongitude));
 			setZoomLevelInternal(this.zoomLevel + zoomLevelDiff);
 		}
@@ -318,7 +301,7 @@ public class MapViewPosition extends Observable implements Persistable {
 		preferencesFacade.putByte(ZOOM_LEVEL_MIN, this.zoomLevelMin);
 	}
 
-	/**
+	/**scaleFactor
 	 * Sets the new center position of the map.
 	 */
 	public void setCenter(LatLong latLong) {

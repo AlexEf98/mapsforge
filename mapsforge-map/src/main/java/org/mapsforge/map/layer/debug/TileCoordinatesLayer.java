@@ -28,6 +28,7 @@ import org.mapsforge.core.graphics.Style;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.util.LayerUtil;
 import org.mapsforge.map.layer.TilePosition;
@@ -54,27 +55,30 @@ public class TileCoordinatesLayer extends Layer {
 
 	private final DisplayModel displayModel;
 	private final Paint paintFront, paintBack;
+	private final MapModel mapModel;
 
-	public TileCoordinatesLayer(GraphicFactory graphicFactory, DisplayModel displayModel) {
+	public TileCoordinatesLayer(GraphicFactory graphicFactory, DisplayModel displayModel, MapModel mapModel) {
 		super();
 
 		this.displayModel = displayModel;
 		this.paintFront = createPaintFront(graphicFactory, displayModel);
 		this.paintBack = createPaintBack(graphicFactory, displayModel);
+		this.mapModel = mapModel;
 	}
 
-	public TileCoordinatesLayer(DisplayModel displayModel, Paint paintBack, Paint paintFront) {
+	public TileCoordinatesLayer(DisplayModel displayModel, Paint paintBack, Paint paintFront, MapModel mapModel) {
 		super();
 
 		this.displayModel = displayModel;
 		this.paintFront = paintFront;
 		this.paintBack = paintBack;
+		this.mapModel = mapModel;
 	}
 
 	@Override
 	public void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
 		List<TilePosition> tilePositions = LayerUtil.getTilePositions(boundingBox, zoomLevel, topLeftPoint,
-				this.displayModel.getTileSize());
+				mapModel);
 		for (int i = tilePositions.size() - 1; i >= 0; --i) {
 			drawTileCoordinates(tilePositions.get(i), canvas);
 		}

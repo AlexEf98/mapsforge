@@ -39,11 +39,6 @@ final class RequiredFields {
 	private static final int HEADER_SIZE_MIN = 70;
 
 	/**
-	 * The name of the Mercator projection as stored in the file header.
-	 */
-	private static final String MERCATOR = "Mercator";
-
-	/**
 	 * Version of the map file format which is supported by this implementation.
 	 */
 	private static final int SUPPORTED_FILE_VERSION = 3;
@@ -125,9 +120,9 @@ final class RequiredFields {
 	static void readProjectionName(ReadBuffer readBuffer, MapFileInfoBuilder mapFileInfoBuilder) {
 		// get and check the projection name
 		String projectionName = readBuffer.readUTF8EncodedString();
-		if (!MERCATOR.equals(projectionName)) {
+		/*if (!MERCATOR.equals(projectionName)) {
 			throw new MapFileException("unsupported projection: " + projectionName);
-		}
+		}*/
 		mapFileInfoBuilder.projectionName = projectionName;
 	}
 

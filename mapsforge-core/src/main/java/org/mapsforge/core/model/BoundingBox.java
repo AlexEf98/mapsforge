@@ -18,7 +18,7 @@ package org.mapsforge.core.model;
 import java.io.Serializable;
 
 import org.mapsforge.core.util.LatLongUtils;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
 
 /**
  * A BoundingBox represents an immutable set of two latitude and two longitude coordinates.
@@ -150,9 +150,9 @@ public class BoundingBox implements Serializable {
 	 * @param tile the tile to compute the relative position for.
 	 * @return rectangle giving the relative position.
 	 */
-	public Rectangle getPositionRelativeToTile(Tile tile) {
-		Point upperLeft = MercatorProjection.getPixelRelativeToTile(new LatLong(this.maxLatitude, minLongitude), tile);
-		Point lowerRight = MercatorProjection.getPixelRelativeToTile(new LatLong(this.minLatitude, maxLongitude), tile);
+	public Rectangle getPositionRelativeToTile(Tile tile, MapModel mapModel) {
+		Point upperLeft = tile.getPixelRelativeToTile(new LatLong(this.maxLatitude, minLongitude), mapModel);
+		Point lowerRight = tile.getPixelRelativeToTile(new LatLong(this.minLatitude, maxLongitude), mapModel);
 		return new Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
 	}
 
@@ -256,9 +256,9 @@ public class BoundingBox implements Serializable {
 		double verticalExpansion = LatLongUtils.latitudeDistance(meters);
 		double horizontalExpansion = LatLongUtils.longitudeDistance(meters, Math.max(Math.abs(minLatitude), Math.abs(maxLatitude)));
 
-		double minLat = Math.max(MercatorProjection.LATITUDE_MIN, this.minLatitude - verticalExpansion);
+		double minLat = Math.max(-90, this.minLatitude - verticalExpansion);
 		double minLon = Math.max(-180, this.minLongitude - horizontalExpansion);
-		double maxLat = Math.min(MercatorProjection.LATITUDE_MAX, this.maxLatitude + verticalExpansion);
+		double maxLat = Math.min(90, this.maxLatitude + verticalExpansion);
 		double maxLon = Math.min(180, this.maxLongitude + horizontalExpansion);
 
 		return new BoundingBox(minLat, minLon, maxLat, maxLon);

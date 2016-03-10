@@ -23,11 +23,13 @@ import org.mapsforge.core.graphics.Paint;
 import org.mapsforge.core.graphics.Style;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.model.DisplayModel;
 
 public class TileGridLayer extends Layer {
+	private MapModel mapModel;
+
 	private static Paint createPaintFront(GraphicFactory graphicFactory, DisplayModel displayModel) {
 		Paint paint = graphicFactory.createPaint();
 		paint.setColor(Color.BLACK);
@@ -47,48 +49,49 @@ public class TileGridLayer extends Layer {
 	private final DisplayModel displayModel;
 	private final Paint paintFront, paintBack;
 
-	public TileGridLayer(GraphicFactory graphicFactory, DisplayModel displayModel) {
+	public TileGridLayer(GraphicFactory graphicFactory, DisplayModel displayModel, MapModel mapModel) {
 		super();
 
 		this.displayModel = displayModel;
 		this.paintFront = createPaintFront(graphicFactory, displayModel);
 		this.paintBack = createPaintBack(graphicFactory, displayModel);
+		this.mapModel = mapModel;
 	}
 
-	public TileGridLayer(DisplayModel displayModel, Paint paintBack, Paint paintFront) {
+	public TileGridLayer(DisplayModel displayModel, Paint paintBack, Paint paintFront, MapModel mapModel) {
 		super();
 
 		this.displayModel = displayModel;
 		this.paintFront = paintFront;
 		this.paintBack = paintBack;
+		this.mapModel = mapModel;
 	}
 
 	@Override
 	public void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
-		long tileLeft = MercatorProjection.longitudeToTileX(boundingBox.minLongitude, zoomLevel);
-		long tileTop = MercatorProjection.latitudeToTileY(boundingBox.maxLatitude, zoomLevel);
-		long tileRight = MercatorProjection.longitudeToTileX(boundingBox.maxLongitude, zoomLevel);
-		long tileBottom = MercatorProjection.latitudeToTileY(boundingBox.minLatitude, zoomLevel);
+		int tileLeft = mapModel.longitudeToTileX(boundingBox.minLongitude, zoomLevel);
+		int tileTop = mapModel.latitudeToTileY(boundingBox.maxLatitude, zoomLevel);
+		int tileRight = mapModel.longitudeToTileX(boundingBox.maxLongitude, zoomLevel);
+		int tileBottom = mapModel.latitudeToTileY(boundingBox.minLatitude, zoomLevel);
 
-		int tileSize = this.displayModel.getTileSize();
-		int pixelX1 = (int) (MercatorProjection.tileToPixel(tileLeft, tileSize) - topLeftPoint.x);
-		int pixelY1 = (int) (MercatorProjection.tileToPixel(tileTop, tileSize) - topLeftPoint.y);
-		int pixelX2 = (int) (MercatorProjection.tileToPixel(tileRight, tileSize) - topLeftPoint.x + tileSize);
-		int pixelY2 = (int) (MercatorProjection.tileToPixel(tileBottom, tileSize) - topLeftPoint.y + tileSize);
+		int pixelX1 = (int) (mapModel.tilePixelX(tileLeft) - topLeftPoint.x);
+		int pixelY1 = (int) (mapModel.tilePixelY(tileTop) - topLeftPoint.y);
+		int pixelX2 = (int) (mapModel.tilePixelX(tileRight) - topLeftPoint.x + mapModel.getTileWidth());
+		int pixelY2 = (int) (mapModel.tilePixelY(tileBottom) - topLeftPoint.y + mapModel.getTileHeight());
 
-		for (int lineX = pixelX1; lineX <= pixelX2 + 1; lineX += tileSize) {
+		for (int lineX = pixelX1; lineX <= pixelX2 + 1; lineX += mapModel.getTileWidth()) {
 			canvas.drawLine(lineX, pixelY1, lineX, pixelY2, this.paintBack);
 		}
 
-		for (int lineY = pixelY1; lineY <= pixelY2 + 1; lineY += tileSize) {
+		for (int lineY = pixelY1; lineY <= pixelY2 + 1; lineY += mapModel.getTileHeight()) {
 			canvas.drawLine(pixelX1, lineY, pixelX2, lineY, this.paintBack);
 		}
 
-		for (int lineX = pixelX1; lineX <= pixelX2 + 1; lineX += tileSize) {
+		for (int lineX = pixelX1; lineX <= pixelX2 + 1; lineX += mapModel.getTileWidth()) {
 			canvas.drawLine(lineX, pixelY1, lineX, pixelY2, this.paintFront);
 		}
 
-		for (int lineY = pixelY1; lineY <= pixelY2 + 1; lineY += tileSize) {
+		for (int lineY = pixelY1; lineY <= pixelY2 + 1; lineY += mapModel.getTileHeight()) {
 			canvas.drawLine(pixelX1, lineY, pixelX2, lineY, this.paintFront);
 		}
 	}

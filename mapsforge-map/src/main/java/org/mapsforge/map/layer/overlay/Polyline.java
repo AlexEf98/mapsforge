@@ -26,7 +26,7 @@ import org.mapsforge.core.graphics.Path;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.layer.Layer;
 
 /**
@@ -77,17 +77,17 @@ public class Polyline extends Layer {
 		}
 
 		LatLong latLong = iterator.next();
-		long mapSize = MercatorProjection.getMapSize(zoomLevel, displayModel.getTileSize());
-		float x = (float) (MercatorProjection.longitudeToPixelX(latLong.longitude, mapSize) - topLeftPoint.x);
-		float y = (float) (MercatorProjection.latitudeToPixelY(latLong.latitude, mapSize) - topLeftPoint.y);
+		MapProjection projection = this.displayModel.getProjection(zoomLevel);
+		float x = (float) (projection.longitudeToPixelX(latLong.longitude) - topLeftPoint.x);
+		float y = (float) (projection.latitudeToPixelY(latLong.latitude) - topLeftPoint.y);
 
 		Path path = this.graphicFactory.createPath();
 		path.moveTo(x, y);
 
 		while (iterator.hasNext()) {
 			latLong = iterator.next();
-			x = (float) (MercatorProjection.longitudeToPixelX(latLong.longitude, mapSize) - topLeftPoint.x);
-			y = (float) (MercatorProjection.latitudeToPixelY(latLong.latitude, mapSize) - topLeftPoint.y);
+			x = (float) (projection.longitudeToPixelX(latLong.longitude) - topLeftPoint.x);
+			y = (float) (projection.latitudeToPixelY(latLong.latitude) - topLeftPoint.y);
 
 			path.lineTo(x, y);
 		}

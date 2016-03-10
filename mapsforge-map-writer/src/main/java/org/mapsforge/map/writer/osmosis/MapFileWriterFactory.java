@@ -40,15 +40,18 @@ class MapFileWriterFactory extends TaskManagerFactory {
 	private static final String PARAM_SIMPLIFICATION_FACTOR = "simplification-factor";
 	private static final String PARAM_SKIP_INVALID_RELATIONS = "skip-invalid-relations";
 	private static final String PARAM_TAG_MAPPING_FILE = "tag-conf-file";
+	private static final String PARAM_TAG_MAPPING_ZOOM_SHIFT = "tag-conf-zoom-shift";
 	private static final String PARAM_TYPE = "type";
 	private static final String PARAM_WAY_CLIPPING = "way-clipping";
 	private static final String PARAM_ZOOMINTERVAL_CONFIG = "zoom-interval-conf";
+	private static final String PARAM_MAP_CONFIG_FILE = "map-config-file";
 
 	@Override
 	protected TaskManager createTaskManagerImpl(TaskConfiguration taskConfig) {
 		MapWriterConfiguration configuration = new MapWriterConfiguration();
 		configuration.addOutputFile(getStringArgument(taskConfig, PARAM_OUTFILE, Constants.DEFAULT_PARAM_OUTFILE));
-		configuration.loadTagMappingFile(getStringArgument(taskConfig, PARAM_TAG_MAPPING_FILE, null));
+		int zoomShift = getIntegerArgument(taskConfig, PARAM_TAG_MAPPING_ZOOM_SHIFT, 0);
+		configuration.loadTagMappingFile(getStringArgument(taskConfig, PARAM_TAG_MAPPING_FILE, null), (byte) zoomShift);
 
 		configuration.addMapStartPosition(getStringArgument(taskConfig, PARAM_MAP_START_POSITION, null));
 		configuration.addMapStartZoom(getStringArgument(taskConfig, PARAM_MAP_START_ZOOM, null));
@@ -73,7 +76,7 @@ class MapFileWriterFactory extends TaskManagerFactory {
 		configuration.setPreferredLanguage(getStringArgument(taskConfig, PARAM_PREFERRED_LANGUAGE, null));
 		configuration
 				.addEncodingChoice(getStringArgument(taskConfig, PARAM_ENCODING, Constants.DEFAULT_PARAM_ENCODING));
-
+		configuration.loadMapModel(getStringArgument(taskConfig, PARAM_MAP_CONFIG_FILE, null));
 		configuration.validate();
 
 		MapFileWriterTask task = new MapFileWriterTask(configuration);

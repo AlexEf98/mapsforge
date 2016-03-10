@@ -1,0 +1,233 @@
+import org.mapsforge.core.util.MapConfiguration;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapModelFactory;
+import org.mapsforge.core.util.MapProjection;
+
+buildscript {
+    dependencies {
+        classpath files("libs/mapsforge-core-0.5.1.jar")
+        //classpath project(":mapsforge-core")
+    }
+}
+
+/*dependencies {
+    compile project(":mapsforge-core")
+}*/
+
+println "name=" + project.name
+println "path=" + project.path
+println "projectDir=" + project.projectDir
+println "buildDir=" + project.buildDir
+
+ext {
+    repoDir = "./../../map_data/29.02.2016"
+    osmDataFileName = "base.o5m"
+    osmDataPath = repoDir
+    osmDataFilePath = osmDataPath + "/"+osmDataFileName
+    mapConfigFileName = "map-config.xml"
+    mapDataPath = repoDir + "/map1"
+    mapConfigFilePath = mapDataPath + "/"+ mapConfigFileName
+    osmMapPartsPath=project.buildDir.path +"/map_parts"
+    xCellCount = 16
+    yCellCount = 16
+    zoomConf = "7,4,8,11,9,18"
+    tagConfZoomShift = 3
+    tagConfigFilePath = mapDataPath + "/type1/"+ "tag-mapping.xml"
+}
+
+tasks.addRule("Pattern: osmCell<ID>") { String taskName ->
+    if (taskName.startsWith("osmCell")) {
+        def value = (taskName - 'osmCell')
+        def cellPattern = /X(\d+)Y(\d+)/
+        if (value ==~ cellPattern) {
+            def cell = (value =~ cellPattern)
+            cell.find()
+            def x = cell.group(1)
+            def y = cell.group(2)
+            println "osmCell: x=" + x
+            println "osmCell: y=" + y
+            task(taskName, type:OsmCell) {
+                tasks[taskName].x = Integer.parseInt(x)
+                tasks[taskName].y = Integer.parseInt(y)
+                println "osmCell: " + value
+            }
+        } else {
+            println "osmCell invalid task: " + value
+        }
+    } else {
+        println "Other task: " + taskName
+    }
+}
+
+tasks.addRule("Pattern: osmCellArea<ID>") { String taskName ->
+    if (taskName.startsWith("osmCellArea")) {
+        def value = (taskName - 'osmCellArea')
+        def cellPattern = /X(\d+)X(\d+)Y(\d+)Y(\d+)/
+        if (value ==~ cellPattern) {
+            def cell = (value =~ cellPattern)
+            cell.find()
+            def x1 = Integer.parseInt(cell.group(1))
+            def x2 =  Integer.parseInt(cell.group(2))
+            def y1 =  Integer.parseInt(cell.group(3))
+            def y2 =  Integer.parseInt(cell.group(4))
+            task(taskName) {
+                for(int x=x1; x<=x2; x++) {
+                    for(int y=y1; y<=y2; y++) {
+                        dependsOn "osmCellX"+x +"Y" +y
+                    }
+                }
+            }
+        } else {
+            println "osmCellArea invalid task: " + value
+        }
+    } else {
+        println "Other task: " + taskName
+    }
+}
+
+tasks.addRule("Pattern: mapsforgeCell<ID>") { String taskName ->
+    if (taskName.startsWith("mapsforgeCell")) {
+        def value = (taskName - 'mapsforgeCell')
+        def cellPattern = /X(\d+)Y(\d+)/
+        if (value ==~ cellPattern) {
+            def cell = (value =~ cellPattern)
+            cell.find()
+            def x = cell.group(1)
+            def y = cell.group(2)
+            task(taskName, type:MapsforgeCell) {
+                tasks[taskName].x = Integer.parseInt(x)
+                tasks[taskName].y = Integer.parseInt(y)
+            }
+        } else {
+            println "mapsforgeCell invalid task: " + value
+        }
+    } else {
+        println "Other task: " + taskName
+    }
+}
+
+task allOsmCells {
+    dependsOn "osmCellAreaX0X"+(xCellCount -1) +"Y0Y" + (yCellCount-1)
+}
+
+task test {
+    dependsOn osmCellAreaX10X10Y8Y8
+}
+
+class MapsforgeCell extends DefaultTask {
+    def int x = 0;
+    def int y = 0
+
+    @OutputDirectory
+    def File destDir = new File(project.buildDir, 'map_cells')
+    @InputDirectory
+    def File srcOsmMapParts = project.file(project.ext.osmMapPartsPath)
+    @InputFile
+    def File srcMapConfig = project.file(project.ext.mapConfigFilePath)
+    @Input
+    def int xCellCount = project.ext.xCellCount
+    @Input
+    def int yCellCount = project.ext.yCellCount
+    @Input
+    def String zoomConf = project.ext.zoomConf
+    @Input
+    def int tagConfZoomShift = project.ext.tagConfZoomShift
+    @InputFile
+    def File srcTagConfig = project.file(project.ext.tagConfigFilePath)
+
+    @TaskAction
+    def work() {
+        if (x <0 || x > xCellCount || y< 0 || y > yCellCount) {
+            throw new TaskExecutionException(this, new Exception("MapsforgeCell Invalid cell" + " x=" + x + " y=" + y))
+        }
+        File configFile = srcMapConfig
+        String configString = MapConfiguration.getMapConfigString(configFile.toURI().toURL())
+        MapConfiguration mapConfig = MapConfiguration.getMapConfig(configString)
+        MapModel mapModel = new MapModelFactory(mapConfig).createModel()
+        MapProjection mapProjection = mapModel.getProjection((byte)0)
+        double dw = mapProjection.getMapWidth() / xCellCount
+        double x1 = dw * x
+        double x2 = x1 + dw
+        double lonMin = mapProjection.pixelXToLongitude(x1)
+        double lonMax = mapProjection.pixelXToLongitude(x2)
+        double dh = mapProjection.getMapHeight() / yCellCount
+        double y1 = dh * y
+        double y2 = y1 + dh
+        double latMax = mapProjection.pixelYToLatitude(y1)
+        double latMin = mapProjection.pixelYToLatitude(y2)
+
+        println "MapsforgeCell name=" + name + " lonMin=" + lonMin + " lonMax=" + lonMax
+        println "MapsforgeCell name=" + name + " latMin=" + latMin + " latMax=" + latMax
+        //println "OsmTask name=" + name + " x=" + x + " y=" + y
+
+        String rect = latMin+ ","+ lonMin+ "," + latMax+","+lonMax
+        String part = srcOsmMapParts.path + "/"+ "part_"+ x+"_" + y+ ".osm.pbf"
+        String map = destDir.path + "/"+ "part_"+ x+"_" + y+ ".map"
+        println "MapsforgeCell name=" + name + " x=" + x + " y=" + y + " part=" + part
+        project.exec {
+            executable "osmosis"
+            args "--rb", "file=" + part
+            args "--mapfile-writer"
+            args "file="+map
+            args "zoom-interval-conf="+zoomConf
+            args "tag-conf-zoom-shift="+tagConfZoomShift
+            args "map-config-file="+configFile.path
+            args "tag-conf-file="+srcTagConfig.path
+            args "bbox="+rect
+        }
+        //new File(part).text = name
+    }
+}
+
+class OsmCell extends DefaultTask {
+    def int x = 0;
+    def int y = 0
+
+    @OutputDirectory
+    def File destDir = new File(project.buildDir, 'map_parts')
+    @InputFile
+    def File srcOsmMapData = project.file(project.ext.osmDataFilePath)
+    @InputFile
+    def File srcMapConfig = project.file(project.ext.mapConfigFilePath)
+    @Input
+    def int xCellCount = project.ext.xCellCount
+    @Input
+    def int yCellCount = project.ext.yCellCount
+
+
+    @TaskAction
+    def work() {
+        if (x <0 || x > xCellCount || y< 0 || y > yCellCount) {
+            throw new TaskExecutionException(this, new Exception("OsmTask Invalid cell" + " x=" + x + " y=" + y))
+        }
+        File configFile = srcMapConfig
+        String configString = MapConfiguration.getMapConfigString(configFile.toURI().toURL())
+        MapConfiguration mapConfig = MapConfiguration.getMapConfig(configString)
+        MapModel mapModel = new MapModelFactory(mapConfig).createModel()
+        MapProjection mapProjection = mapModel.getProjection((byte)0)
+        double dw = mapProjection.getMapWidth() / xCellCount
+        double x1 = dw * x
+        double x2 = x1 + dw
+        double lonMin = mapProjection.pixelXToLongitude(x1) - 1
+        double lonMax = mapProjection.pixelXToLongitude(x2) + 1
+        double dh = mapProjection.getMapHeight() / yCellCount
+        double y1 = dh * y
+        double y2 = y1 + dh
+        double latMax = mapProjection.pixelYToLatitude(y1) +1
+        double latMin = mapProjection.pixelYToLatitude(y2) -1
+
+        println "OsmTask name=" + name + " lonMin=" + lonMin + " lonMax=" + lonMax
+        println "OsmTask name=" + name + " latMin=" + latMin + " latMax=" + latMax
+        //println "OsmTask name=" + name + " x=" + x + " y=" + y
+
+        String rect = lonMin+ ","+ latMin+ "," + lonMax+","+latMax
+        String part = destDir.path + "/"+ "part_"+ x+"_" + y+ ".osm.pbf"
+        println "OsmTask name=" + name + " x=" + x + " y=" + y + " part=" + part
+        project.exec {
+            executable "osmconvert"
+            args srcOsmMapData.path
+            args "-b="+rect, "-o="+part
+        }
+        //new File(part).text = name
+    }
+}

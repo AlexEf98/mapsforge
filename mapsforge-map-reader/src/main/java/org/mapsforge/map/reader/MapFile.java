@@ -29,7 +29,8 @@ import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Tag;
 import org.mapsforge.core.model.Tile;
 import org.mapsforge.core.util.LatLongUtils;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapModelFactory;
 import org.mapsforge.map.reader.header.MapFileException;
 import org.mapsforge.map.reader.header.MapFileHeader;
 import org.mapsforge.map.reader.header.MapFileInfo;
@@ -205,7 +206,8 @@ public class MapFile implements MapDataStore {
 	private final MapFileHeader mapFileHeader;
 	private final ReadBuffer readBuffer;
 	private final long timestamp;
-
+	private final MapModelFactory mapModelFactory;
+	private final MapModel mapModel;
 
 	/* Only for testing, an empty file. */
 	public static final MapFile TEST_MAP_FILE = new MapFile();
@@ -252,6 +254,8 @@ public class MapFile implements MapDataStore {
 			this.databaseIndexCache = new IndexCache(this.inputFile, INDEX_CACHE_SIZE);
 
 			this.timestamp = mapFile.lastModified();
+			this.mapModelFactory = mapFileHeader.getMapModelFactory();
+			this.mapModel = mapFileHeader.getMapModel();
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, null, e);
 			// make sure that the file is closed
@@ -338,7 +342,7 @@ public class MapFile implements MapDataStore {
 			// we enlarge the bounding box for the tile slightly in order to retain any data that
 			// lies right on the border, some of this data needs to be drawn as the graphics will
 			// overlap onto this tile.
-			return processBlocks(queryParameters, subFileParameter, tile.getBoundingBox());
+			return processBlocks(queryParameters, subFileParameter, mapModel.getTileBoundingBox(tile));
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, null, e);
 			return null;
@@ -374,7 +378,12 @@ public class MapFile implements MapDataStore {
 
 	@Override
 	public boolean supportsTile(Tile tile) {
-		return tile.getBoundingBox().intersects(getMapFileInfo().boundingBox);
+		return mapModel.supportsTile(tile);
+	}
+
+	@Override
+	public MapModel getMapModel(int tileSize) {
+		return mapModelFactory.createModel(tileSize);
 	}
 
 	private void decodeWayNodesDoubleDelta(LatLong[] waySegment, double tileLatitude, double tileLongitude) {
@@ -570,9 +579,9 @@ public class MapFile implements MapDataStore {
 				}
 
 				// calculate the top-left coordinates of the underlying tile
-				double tileLatitude = MercatorProjection.tileYToLatitude(subFileParameter.boundaryTileTop + row,
+				double tileLatitude = mapModel.tileYToLatitude(subFileParameter.boundaryTileTop + row,
 						subFileParameter.baseZoomLevel);
-				double tileLongitude = MercatorProjection.tileXToLongitude(subFileParameter.boundaryTileLeft + column,
+				double tileLongitude = mapModel.tileXToLongitude(subFileParameter.boundaryTileLeft + column,
 						subFileParameter.baseZoomLevel);
 
 				try {
@@ -879,6 +888,8 @@ public class MapFile implements MapDataStore {
 		mapFileHeader = null;
 		readBuffer = null;
 		timestamp = System.currentTimeMillis();
+		mapModelFactory = null;
+		mapModel = null;
 	}
 }
 

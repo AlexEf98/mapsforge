@@ -21,7 +21,8 @@ import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Tag;
 import org.mapsforge.core.model.Tile;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.reader.Way;
 
 /**
@@ -62,17 +63,17 @@ public class PolylineContainer implements ShapeContainer {
 		this.tags = tags;
 		this.tile = tile;
 		this.layer = 0;
-		isClosedWay = coordinates[0].equals(coordinates[coordinates.length-1]);
+		isClosedWay = coordinates[0].equals(coordinates[coordinates.length - 1]);
 	}
 
-	public Point getCenterAbsolute() {
+	public Point getCenterAbsolute( MapModel mapModel) {
 		if (null == center) {
-			this.center = GeometryUtils.calculateCenterOfBoundingBox(getCoordinatesAbsolute()[0]);
+			this.center = GeometryUtils.calculateCenterOfBoundingBox(getCoordinatesAbsolute(mapModel)[0]);
 		}
 		return this.center;
 	}
 
-	public Point[][] getCoordinatesAbsolute() {
+	public Point[][] getCoordinatesAbsolute(MapModel mapModel) {
 		// deferred evaluation as some PolyLineContainers will never be drawn. However,
 		// to save memory, after computing the absolute coordinates, the way is released.
 		if (coordinatesAbsolute == null) {
@@ -80,7 +81,7 @@ public class PolylineContainer implements ShapeContainer {
 			for (int i = 0; i < way.latLongs.length; ++i) {
 				coordinatesAbsolute[i] = new Point[way.latLongs[i].length];
 				for (int j = 0; j < way.latLongs[i].length; ++j) {
-					coordinatesAbsolute[i][j] = MercatorProjection.getPixelAbsolute(way.latLongs[i][j], tile.mapSize);
+					coordinatesAbsolute[i][j] = getPixelAbsolute(mapModel, way.latLongs[i][j], tile.zoomLevel);
 				}
 			}
 			this.way = null;
@@ -88,10 +89,16 @@ public class PolylineContainer implements ShapeContainer {
 		return coordinatesAbsolute;
 	}
 
-	public Point[][] getCoordinatesRelativeToTile() {
+	private Point getPixelAbsolute(MapModel mapModel, LatLong latLong, byte zoom) {
+		MapProjection projection = mapModel.getProjection(zoom);
+		double pixelX = projection.longitudeToPixelX(latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(latLong.latitude);
+		return new Point(pixelX, pixelY);
+	}
+	public Point[][] getCoordinatesRelativeToTile(MapModel mapModel) {
 		if (coordinatesRelativeToTile == null) {
-			Point tileOrigin = tile.getOrigin();
-			coordinatesRelativeToTile = new Point[getCoordinatesAbsolute().length][];
+			Point tileOrigin = tile.getOrigin(mapModel);
+			coordinatesRelativeToTile = new Point[getCoordinatesAbsolute(mapModel).length][];
 			for (int i = 0; i < coordinatesRelativeToTile.length; ++ i) {
 				coordinatesRelativeToTile[i] = new Point[coordinatesAbsolute[i].length];
 				for (int j = 0; j < coordinatesRelativeToTile[i].length; ++j) {

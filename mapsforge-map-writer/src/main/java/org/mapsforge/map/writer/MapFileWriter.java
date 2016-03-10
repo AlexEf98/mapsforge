@@ -31,8 +31,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.mapsforge.core.model.LatLong;
+import org.mapsforge.core.model.Tile;
 import org.mapsforge.core.util.LatLongUtils;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.writer.model.Encoding;
 import org.mapsforge.map.writer.model.MapWriterConfiguration;
 import org.mapsforge.map.writer.model.OSMTag;
@@ -146,7 +147,7 @@ public final class MapFileWriter {
 					|| (originalGeometry instanceof LineString || originalGeometry instanceof MultiLineString)
 					&& this.configuration.isWayClipping()) {
 				processedGeometry = GeoUtils.clipToTile(this.way, originalGeometry, this.tile,
-						this.configuration.getBboxEnlargement());
+						this.configuration.getBboxEnlargement(), this.configuration.getMapModel());
 				if (processedGeometry == null) {
 					return null;
 				}
@@ -154,9 +155,9 @@ public final class MapFileWriter {
 
 			// TODO is this the right place to simplify, or is it better before clipping?
 			if (this.configuration.getSimplification() > 0
-					&& this.tile.getZoomlevel() <= Constants.MAX_SIMPLIFICATION_BASE_ZOOM) {
-				processedGeometry = GeoUtils.simplifyGeometry(this.way, processedGeometry, this.maxZoomInterval,
-						tileSize, this.configuration.getSimplification());
+					&& this.tile.getZoomlevel() <= Constants.MAX_SIMPLIFICATION_BASE_ZOOM - this.configuration.zoomShift()) {
+				MapProjection projection = this.configuration.getMapModel().getProjection(this.maxZoomInterval);
+				processedGeometry = GeoUtils.simplifyGeometry(this.way, processedGeometry, projection, this.configuration.getSimplification());
 				if (processedGeometry == null) {
 					return null;
 				}
@@ -176,7 +177,7 @@ public final class MapFileWriter {
 				return null;
 			}
 			short subtileMask = GeoUtils.computeBitmask(processedGeometry, this.tile,
-					this.configuration.getBboxEnlargement());
+					this.configuration.getBboxEnlargement(), this.configuration.getMapModel());
 
 			// check if the original polygon is completely contained in the current tile
 			// in that case we do not try to compute a label position
@@ -187,9 +188,9 @@ public final class MapFileWriter {
 			// this way, we can make sure that a label position is attached only once to a clipped polygon
 			LatLong centroidCoordinate = null;
 			if (this.configuration.isLabelPosition() && this.way.isValidClosedLine()
-					&& !GeoUtils.coveredByTile(originalGeometry, this.tile, this.configuration.getBboxEnlargement())) {
+					&& !GeoUtils.coveredByTile(originalGeometry, this.tile, this.configuration.getBboxEnlargement(), this.configuration.getMapModel())) {
 				Point centroidPoint = originalGeometry.getCentroid();
-				if (GeoUtils.coveredByTile(centroidPoint, this.tile, this.configuration.getBboxEnlargement())) {
+				if (GeoUtils.coveredByTile(centroidPoint, this.tile, this.configuration.getBboxEnlargement(), this.configuration.getMapModel())) {
 					centroidCoordinate = new LatLong(centroidPoint.getY(), centroidPoint.getX(), true);
 				}
 			}
@@ -640,7 +641,8 @@ public final class MapFileWriter {
 		containerHeaderBuffer.putShort((short) Constants.DEFAULT_TILE_SIZE);
 
 		// PROJECTION
-		writeUTF8(PROJECTION, containerHeaderBuffer);
+		//writeUTF8(PROJECTION, containerHeaderBuffer);
+		writeUTF8(configuration.getMapConfig(), containerHeaderBuffer);
 
 		// check whether zoom start is a valid zoom level
 
@@ -760,9 +762,9 @@ public final class MapFileWriter {
 		final TileData currentTile = dataProcessor.getTile(zoomIntervalIndex, tileCoordinate.getX(),
 				tileCoordinate.getY());
 
-		final int currentTileLat = LatLongUtils.degreesToMicrodegrees(MercatorProjection.tileYToLatitude(
+		final int currentTileLat = LatLongUtils.degreesToMicrodegrees(configuration.getMapModel().tileYToLatitude(
 				tileCoordinate.getY(), tileCoordinate.getZoomlevel()));
-		final int currentTileLon = LatLongUtils.degreesToMicrodegrees(MercatorProjection.tileXToLongitude(
+		final int currentTileLon = LatLongUtils.degreesToMicrodegrees(configuration.getMapModel().tileXToLongitude(
 				tileCoordinate.getX(), tileCoordinate.getZoomlevel()));
 
 		final byte minZoomCurrentInterval = dataProcessor.getZoomIntervalConfiguration().getMinZoom(zoomIntervalIndex);
@@ -901,6 +903,13 @@ public final class MapFileWriter {
 		for (int tileY = upperLeft.getY(); tileY < upperLeft.getY() + lengthY; tileY++) {
 			for (int tileX = upperLeft.getX(); tileX < upperLeft.getX() + lengthX; tileX++) {
 				TileCoordinate tileCoordinate = new TileCoordinate(tileX, tileY, baseZoomCurrentInterval);
+
+				/*LOGGER.info("Write tile: " + tileCoordinate + " bbox=" +
+						configuration.getMapModel().getTileBoundingBox(new Tile(tileCoordinate.getX(),
+								tileCoordinate.getY(),
+								tileCoordinate.getZoomlevel(),
+								configuration.getMapModel().getTileWidth(),
+								configuration.getMapModel().getTileHeight())));*/
 
 				processIndexEntry(tileCoordinate, indexBuffer, currentSubfileOffset);
 				processTile(configuration, tileCoordinate, dataStore, jtsGeometryCache, zoomIntervalIndex, tileBuffer,

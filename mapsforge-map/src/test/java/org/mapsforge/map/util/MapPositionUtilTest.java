@@ -22,7 +22,6 @@ import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
 import org.mapsforge.map.awt.AwtGraphicFactory;
 
 public class MapPositionUtilTest {

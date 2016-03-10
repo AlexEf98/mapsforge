@@ -224,13 +224,13 @@ public final class AndroidGraphicFactory implements GraphicFactory {
 	}
 
 	@Override
-	public TileBitmap createTileBitmap(InputStream inputStream, int tileSize, boolean isTransparent) {
-		return new AndroidTileBitmap(inputStream, tileSize, isTransparent);
+	public TileBitmap createTileBitmap(InputStream inputStream, int tileWidth, int tileHeight, boolean isTransparent) {
+		return new AndroidTileBitmap(inputStream, tileWidth, tileHeight, isTransparent);
 	}
 
 	@Override
-	public TileBitmap createTileBitmap(int tileSize, boolean isTransparent) {
-		return new AndroidTileBitmap(tileSize, isTransparent);
+	public TileBitmap createTileBitmap(int tileWidth, int tileHeight, boolean isTransparent) {
+		return new AndroidTileBitmap(tileWidth, tileHeight, isTransparent);
 	}
 
 

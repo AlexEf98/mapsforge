@@ -139,7 +139,18 @@ public final class OSMTagMapping {
 	 */
 	public static synchronized OSMTagMapping getInstance() {
 		if (mapping == null) {
-			mapping = getInstance(MapFileWriterTask.class.getClassLoader().getResource("tag-mapping.xml"));
+			throw new IllegalStateException("mapping ia not initialized");
+		}
+
+		return mapping;
+	}
+
+	/**
+	 * @return a new instance
+	 */
+	public static synchronized OSMTagMapping getInstance(byte zoomShift) {
+		if (mapping == null) {
+			mapping = getInstance(MapFileWriterTask.class.getClassLoader().getResource("tag-mapping.xml"), zoomShift);
 		}
 
 		return mapping;
@@ -150,12 +161,12 @@ public final class OSMTagMapping {
 	 *            the {@link URL} to a file that contains a tag configuration
 	 * @return a new instance
 	 */
-	public static OSMTagMapping getInstance(URL tagConf) {
+	public static OSMTagMapping getInstance(URL tagConf, byte zoomShift) {
 		if (mapping != null) {
 			throw new IllegalStateException("mapping already initialized");
 		}
 
-		mapping = new OSMTagMapping(tagConf);
+		mapping = new OSMTagMapping(tagConf, zoomShift);
 		return mapping;
 	}
 
@@ -179,7 +190,9 @@ public final class OSMTagMapping {
 
 	private final Map<Short, Set<OSMTag>> wayZoomOverrides = new LinkedHashMap<>();
 
-	private OSMTagMapping(URL tagConf) {
+	private final byte zoomShift;
+
+	private OSMTagMapping(URL tagConf, byte zoomShift) {
 		try {
 			byte defaultZoomAppear;
 
@@ -341,6 +354,7 @@ public final class OSMTagMapping {
 				}
 			}
 
+			this.zoomShift = zoomShift;
 			// ---- Error handling ----
 		} catch (SAXParseException spe) {
 			LOGGER.severe("\n** Parsing error, line " + spe.getLineNumber() + ", uri " + spe.getSystemId());
@@ -354,6 +368,10 @@ public final class OSMTagMapping {
 		} catch (XPathExpressionException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+
+	public byte getZoomShift() {
+		return zoomShift;
 	}
 
 	/**
@@ -461,7 +479,8 @@ public final class OSMTagMapping {
 		for (short s : tmp.toArray()) {
 			OSMTag tag = this.idToPoiTag.get(Short.valueOf(s));
 			if (tag.isRenderable()) {
-				zoomAppear = (byte) Math.min(zoomAppear, tag.getZoomAppear());
+				int tagZoomAppear =  Math.max(tag.getZoomAppear() - zoomShift, 0);
+				zoomAppear = (byte) Math.min(zoomAppear, tagZoomAppear);
 			}
 		}
 
@@ -503,7 +522,8 @@ public final class OSMTagMapping {
 		for (short s : tmp.toArray()) {
 			OSMTag tag = this.idToWayTag.get(Short.valueOf(s));
 			if (tag.isRenderable()) {
-				zoomAppear = (byte) Math.min(zoomAppear, tag.getZoomAppear());
+				int tagZoomAppear =  Math.max(tag.getZoomAppear() - zoomShift, 0);
+				zoomAppear = (byte) Math.min(zoomAppear, tagZoomAppear);
 			}
 		}
 

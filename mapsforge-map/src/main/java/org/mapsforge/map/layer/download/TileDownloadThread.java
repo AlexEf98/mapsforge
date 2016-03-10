@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.graphics.TileBitmap;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.layer.cache.TileCache;
 import org.mapsforge.map.layer.queue.JobQueue;
@@ -30,21 +31,21 @@ import org.mapsforge.map.util.PausableThread;
 class TileDownloadThread extends PausableThread {
 	private static final Logger LOGGER = Logger.getLogger(TileDownloadThread.class.getName());
 
-	private final DisplayModel displayModel;
+	private final MapModel mapModel;
 	private final GraphicFactory graphicFactory;
 	private JobQueue<DownloadJob> jobQueue;
 	private final Layer layer;
 	private final TileCache tileCache;
 
 	TileDownloadThread(TileCache tileCache, JobQueue<DownloadJob> jobQueue, Layer layer, GraphicFactory graphicFactory,
-			DisplayModel displayModel) {
+			MapModel mapModel) {
 		super();
 
 		this.tileCache = tileCache;
 		this.jobQueue = jobQueue;
 		this.layer = layer;
 		this.graphicFactory = graphicFactory;
-		this.displayModel = displayModel;
+		this.mapModel = mapModel;
 	}
 
 	public void setJobQueue(JobQueue<DownloadJob> jobQueue) {
@@ -81,7 +82,7 @@ class TileDownloadThread extends PausableThread {
 		TileBitmap bitmap = tileDownloader.downloadImage();
 
 		if (!isInterrupted() && bitmap != null) {
-			bitmap.scaleTo(this.displayModel.getTileSize(), this.displayModel.getTileSize());
+			bitmap.scaleTo(this.mapModel.getTileWidth(), this.mapModel.getTileHeight());
 			this.tileCache.put(downloadJob, bitmap);
 			this.layer.requestRedraw();
 		}

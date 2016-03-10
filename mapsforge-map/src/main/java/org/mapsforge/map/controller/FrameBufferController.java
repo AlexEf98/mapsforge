@@ -19,7 +19,7 @@ import org.mapsforge.core.model.Dimension;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.model.Model;
 import org.mapsforge.map.model.common.Observer;
 import org.mapsforge.map.view.FrameBuffer;
@@ -112,11 +112,10 @@ public final class FrameBufferController implements Observer {
 			double scaleFactor, LatLong pivot) {
 
 		MapPosition mapViewPosition = this.model.mapViewPosition.getMapPosition();
+		MapProjection projection = model.displayModel.getProjection(mapPositionFrameBuffer.zoomLevel);
 
-		long mapSize = MercatorProjection.getMapSize(mapPositionFrameBuffer.zoomLevel, model.displayModel.getTileSize());
-
-		Point pointFrameBuffer = MercatorProjection.getPixel(mapPositionFrameBuffer.latLong, mapSize);
-		Point pointMapPosition = MercatorProjection.getPixel(mapViewPosition.latLong, mapSize);
+		Point pointFrameBuffer = getPixel(mapPositionFrameBuffer.latLong, projection);
+		Point pointMapPosition = getPixel(mapViewPosition.latLong, projection);
 
 		double diffX = pointFrameBuffer.x - pointMapPosition.x;
 		double diffY = pointFrameBuffer.y - pointMapPosition.y;
@@ -127,7 +126,7 @@ public final class FrameBufferController implements Observer {
 		double pivotDistanceX = 0d;
 		double pivotDistanceY = 0d;
 		if (pivot != null) {
-			Point pivotXY = MercatorProjection.getPixel(pivot, mapSize);
+			Point pivotXY = getPixel(pivot, projection);
 			pivotDistanceX = pivotXY.x - pointFrameBuffer.x;
 			pivotDistanceY = pivotXY.y - pointFrameBuffer.y;
 		}
@@ -145,5 +144,11 @@ public final class FrameBufferController implements Observer {
 			return true;
 		}
 		return false;
+	}
+
+	public static Point getPixel(LatLong latLong, MapProjection projection) {
+		double pixelX = projection.longitudeToPixelX(latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(latLong.latitude);
+		return new Point(pixelX, pixelY);
 	}
 }

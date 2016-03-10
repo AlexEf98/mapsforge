@@ -21,6 +21,7 @@ import org.mapsforge.core.graphics.Matrix;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.util.LayerUtil;
 
@@ -35,17 +36,19 @@ public class LabelLayer extends Layer {
 	private List<MapElementContainer> elementsToDraw;
 	private Set<Tile> lastTileSet;
 	private int lastLabelStoreVersion;
+	private MapModel mapModel;
 
 
-	public LabelLayer(GraphicFactory graphicFactory, LabelStore labelStore) {
+	public LabelLayer(GraphicFactory graphicFactory, LabelStore labelStore, MapModel mapModel) {
 		this.labelStore = labelStore;
 		this.matrix = graphicFactory.createMatrix();
+		this.mapModel = mapModel;
 	}
 
 	@Override
 	public void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
 
-		Set<Tile> currentTileSet = LayerUtil.getTiles(boundingBox, zoomLevel, displayModel.getTileSize());
+		Set<Tile> currentTileSet = LayerUtil.getTiles(boundingBox, zoomLevel, mapModel);
 		if (!currentTileSet.equals(lastTileSet) || lastLabelStoreVersion != labelStore.getVersion()) {
 			// only need to get new data set if either set of tiles changed or the label store
 			lastTileSet = currentTileSet;

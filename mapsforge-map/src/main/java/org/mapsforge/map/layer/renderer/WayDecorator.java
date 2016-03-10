@@ -26,6 +26,7 @@ import org.mapsforge.core.model.LineSegment;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Rectangle;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 
 final class WayDecorator {
 
@@ -125,7 +126,7 @@ final class WayDecorator {
 	 * @param currentLabels the list of labels to which a new WayTextContainer will be added
 	 */
 	static void renderText(Tile tile, String text, Display display, int priority, float dy, Paint fill, Paint stroke, Point[][] coordinates,
-			List<MapElementContainer> currentLabels) {
+			List<MapElementContainer> currentLabels, MapModel mapModel) {
 
 		// Calculate the way name length plus some margin of safety
 		int wayNameWidth = (stroke == null) ? fill.getTextWidth(text) + WAYNAME_SAFETY_MARGIN*2 : stroke.getTextWidth(text) + WAYNAME_SAFETY_MARGIN*2;
@@ -134,7 +135,7 @@ final class WayDecorator {
 		// We make the tile smaller because otherwise we sometimes write the text beyond the tile boundary
 		// (e.g. a road that runs parallel just below a tile boundary)
 		double textHeight = (stroke == null) ? fill.getTextHeight(text) : stroke.getTextHeight(text);
-		final Rectangle tileBoundary = tile.getBoundaryAbsolute().envelope(-textHeight);
+		final Rectangle tileBoundary = tile.getBoundaryAbsolute(mapModel).envelope(-textHeight);
 
 		int skipPixels = 0;
 

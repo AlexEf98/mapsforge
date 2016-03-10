@@ -14,7 +14,7 @@
  */
 package org.mapsforge.map.reader.header;
 
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
 
 /**
  * Holds all parameters of a sub-file.
@@ -100,7 +100,7 @@ public class SubFileParameter {
 	 */
 	private final int hashCodeValue;
 
-	SubFileParameter(SubFileParameterBuilder subFileParameterBuilder) {
+	SubFileParameter(SubFileParameterBuilder subFileParameterBuilder, MapModel mapModel) {
 		this.startAddress = subFileParameterBuilder.startAddress;
 		this.indexStartAddress = subFileParameterBuilder.indexStartAddress;
 		this.subFileSize = subFileParameterBuilder.subFileSize;
@@ -110,13 +110,13 @@ public class SubFileParameter {
 		this.hashCodeValue = calculateHashCode();
 
 		// calculate the XY numbers of the boundary tiles in this sub-file
-		this.boundaryTileBottom = MercatorProjection.latitudeToTileY(subFileParameterBuilder.boundingBox.minLatitude,
+		this.boundaryTileBottom = mapModel.latitudeToTileY(subFileParameterBuilder.boundingBox.minLatitude,
 				this.baseZoomLevel);
-		this.boundaryTileLeft = MercatorProjection.longitudeToTileX(subFileParameterBuilder.boundingBox.minLongitude,
+		this.boundaryTileLeft = mapModel.longitudeToTileX(subFileParameterBuilder.boundingBox.minLongitude,
 				this.baseZoomLevel);
-		this.boundaryTileTop = MercatorProjection.latitudeToTileY(subFileParameterBuilder.boundingBox.maxLatitude,
+		this.boundaryTileTop = mapModel.latitudeToTileY(subFileParameterBuilder.boundingBox.maxLatitude,
 				this.baseZoomLevel);
-		this.boundaryTileRight = MercatorProjection.longitudeToTileX(subFileParameterBuilder.boundingBox.maxLongitude,
+		this.boundaryTileRight = mapModel.longitudeToTileX(subFileParameterBuilder.boundingBox.maxLongitude,
 				this.baseZoomLevel);
 
 		// calculate the horizontal and vertical amount of blocks in this sub-file

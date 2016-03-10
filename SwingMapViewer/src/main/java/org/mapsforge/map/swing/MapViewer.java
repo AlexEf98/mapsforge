@@ -82,7 +82,7 @@ public final class MapViewer {
 			@Override
 			public void windowOpened(WindowEvent e) {
 				byte zoomLevel = LatLongUtils.zoomForBounds(model.mapViewDimension.getDimension(), boundingBox,
-						model.displayModel.getTileSize());
+						null);
 				model.mapViewPosition.setMapPosition(new MapPosition(boundingBox.getCenterPoint(), zoomLevel));
 			}
 		});
@@ -101,8 +101,8 @@ public final class MapViewer {
 			layers.add(tileRendererLayer);
 		}
 		if (SHOW_DEBUG_LAYERS) {
-			layers.add(new TileGridLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel));
-			layers.add(new TileCoordinatesLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel));
+			//layers.add(new TileGridLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel));
+			//layers.add(new TileCoordinatesLayer(GRAPHIC_FACTORY, mapView.getModel().displayModel));
 		}
 		return result;
 	}
@@ -132,20 +132,22 @@ public final class MapViewer {
 
 	@SuppressWarnings("unused")
 	private static Layer createTileDownloadLayer(TileCache tileCache, MapViewPosition mapViewPosition) {
-		TileSource tileSource = OpenStreetMapMapnik.INSTANCE;
+		/*TileSource tileSource = OpenStreetMapMapnik.INSTANCE;
 		TileDownloadLayer tileDownloadLayer = new TileDownloadLayer(tileCache, mapViewPosition, tileSource,
 				GRAPHIC_FACTORY);
 		tileDownloadLayer.start();
-		return tileDownloadLayer;
+		return tileDownloadLayer;*/
+		return null;
 	}
 
 	private static TileRendererLayer createTileRendererLayer(
 			TileCache tileCache,
 			MapViewPosition mapViewPosition, boolean isTransparent, boolean renderLabels, File mapFile) {
-		TileRendererLayer tileRendererLayer = new TileRendererLayer(tileCache, new MapFile(mapFile), mapViewPosition, isTransparent,
+		/*TileRendererLayer tileRendererLayer = new TileRendererLayer(tileCache, new MapFile(mapFile), mapViewPosition, isTransparent,
 				renderLabels, GRAPHIC_FACTORY);
 		tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
-		return tileRendererLayer;
+		return tileRendererLayer;*/
+		return null;
 	}
 
 	private static List<File> getMapFiles(String[] args) {

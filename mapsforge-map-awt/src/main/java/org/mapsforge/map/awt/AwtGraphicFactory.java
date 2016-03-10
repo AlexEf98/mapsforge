@@ -160,13 +160,13 @@ public class AwtGraphicFactory implements GraphicFactory {
 	}
 
 	@Override
-	public TileBitmap createTileBitmap(InputStream inputStream, int tileSize, boolean hasAlpha) throws IOException {
+	public TileBitmap createTileBitmap(InputStream inputStream, int tileWidth, int tileHeight, boolean hasAlpha) throws IOException {
 		return new AwtTileBitmap(inputStream);
 	}
 
 	@Override
-	public TileBitmap createTileBitmap(int tileSize, boolean hasAlpha) {
-		return new AwtTileBitmap(tileSize, hasAlpha);
+	public TileBitmap createTileBitmap(int tileWidth, int tileHeight, boolean hasAlpha) {
+		return new AwtTileBitmap(tileWidth, tileHeight, hasAlpha);
 	}
 
 	@Override

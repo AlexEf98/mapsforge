@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map-config
+    map-width="256"
+    map-height="256"
+    tile-x-count="1"
+    tile-y-count="1"
+    map-upper-lat="85.05112877980659"
+    map-bottom-lat="-85.05112877980659"
+    map-left-lon="-180"
+    map-right-lon="180"
+    projection="mercator">
+</map-config>

@@ -18,6 +18,7 @@ package org.mapsforge.map.reader;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 
 /**
  * Abstracted out interface for data retrieval.
@@ -70,4 +71,5 @@ public interface MapDataStore {
 	 */
 	boolean supportsTile(Tile tile);
 
+	MapModel getMapModel(int tileSize);
 }

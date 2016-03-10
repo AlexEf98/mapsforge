@@ -19,6 +19,7 @@ package org.mapsforge.map.layer.renderer;
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.graphics.TileBitmap;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.TileLayer;
 import org.mapsforge.map.layer.cache.TileCache;
 import org.mapsforge.map.layer.labels.LabelStore;
@@ -51,17 +52,17 @@ public class TileRendererLayer extends TileLayer<RendererJob> {
 	 * @param graphicFactory the graphicFactory to carry out platform specific operations
 	 */
 	public TileRendererLayer(TileCache tileCache, MapDataStore mapDataStore, MapViewPosition mapViewPosition, boolean isTransparent,
-	                         boolean renderLabels, GraphicFactory graphicFactory) {
-		super(tileCache, mapViewPosition, graphicFactory.createMatrix(), isTransparent);
+	                         boolean renderLabels, GraphicFactory graphicFactory, MapModel mapModel) {
+		super(tileCache, mapViewPosition, graphicFactory.createMatrix(), isTransparent, mapModel);
 
 		this.graphicFactory = graphicFactory;
 		this.mapDataStore = mapDataStore;
 		if (renderLabels) {
 			this.tileBasedLabelStore = null;
-			this.databaseRenderer = new DatabaseRenderer(this.mapDataStore, graphicFactory, tileCache);
+			this.databaseRenderer = new DatabaseRenderer(this.mapDataStore, graphicFactory, tileCache, mapModel);
 		} else {
 			this.tileBasedLabelStore = new TileBasedLabelStore(tileCache.getCapacityFirstLevel());
-			this.databaseRenderer = new DatabaseRenderer(this.mapDataStore, graphicFactory, tileBasedLabelStore);
+			this.databaseRenderer = new DatabaseRenderer(this.mapDataStore, graphicFactory, tileBasedLabelStore, mapModel);
 		}
 		this.textScale = 1;
 	}

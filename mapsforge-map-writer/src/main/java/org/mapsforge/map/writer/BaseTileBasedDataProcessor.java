@@ -33,7 +33,7 @@ import java.util.logging.Logger;
 
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.util.LatLongUtils;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.writer.model.MapWriterConfiguration;
 import org.mapsforge.map.writer.model.NodeResolver;
 import org.mapsforge.map.writer.model.TDNode;
@@ -267,6 +267,7 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 	protected final String preferredLanguage;
 	protected final boolean skipInvalidRelations;
 	protected TileGridLayout[] tileGridLayouts;
+	protected final MapModel mapModel;
 
 	// public BaseTileBasedDataProcessor(double minLat, double maxLat, double minLon, double maxLon,
 	// ZoomIntervalConfiguration zoomIntervalConfiguration, int bboxEnlargement, String preferredLanguage) {
@@ -287,6 +288,7 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 		this.bboxEnlargement = configuration.getBboxEnlargement();
 		this.preferredLanguage = configuration.getPreferredLanguage();
 		this.skipInvalidRelations = configuration.isSkipInvalidRelations();
+		this.mapModel = configuration.getMapModel();
 
 		this.outerToInnerMapping = new TLongObjectHashMap<>();
 		this.innerWaysWithoutAdditionalTags = new TLongHashSet();
@@ -301,9 +303,9 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 		// compute horizontal and vertical tile coordinate offsets for all
 		// base zoom levels
 		for (int i = 0; i < this.zoomIntervalConfiguration.getNumberOfZoomIntervals(); i++) {
-			TileCoordinate upperLeft = new TileCoordinate((int) MercatorProjection.longitudeToTileX(
+			TileCoordinate upperLeft = new TileCoordinate((int) mapModel.longitudeToTileX(
 					this.boundingbox.minLongitude, this.zoomIntervalConfiguration.getBaseZoom(i)),
-					(int) MercatorProjection.latitudeToTileY(this.boundingbox.maxLatitude,
+					(int) mapModel.latitudeToTileY(this.boundingbox.maxLatitude,
 							this.zoomIntervalConfiguration.getBaseZoom(i)),
 					this.zoomIntervalConfiguration.getBaseZoom(i));
 			this.tileGridLayouts[i] = new TileGridLayout(upperLeft, computeNumberOfHorizontalTiles(i),
@@ -345,10 +347,10 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 		for (int i = 0; i < this.zoomIntervalConfiguration.getNumberOfZoomIntervals(); i++) {
 			// is POI seen in a zoom interval?
 			if (minZoomLevel <= this.zoomIntervalConfiguration.getMaxZoom(i)) {
-				long tileCoordinateX = MercatorProjection.longitudeToTileX(
+				long tileCoordinateX = mapModel.longitudeToTileX(
 						LatLongUtils.microdegreesToDegrees(poi.getLongitude()),
 						this.zoomIntervalConfiguration.getBaseZoom(i));
-				long tileCoordinateY = MercatorProjection.latitudeToTileY(
+				long tileCoordinateY = mapModel.latitudeToTileY(
 						LatLongUtils.microdegreesToDegrees(poi.getLatitude()),
 						this.zoomIntervalConfiguration.getBaseZoom(i));
 				TileData tileData = getTileImpl(i, (int) tileCoordinateX, (int) tileCoordinateY);
@@ -367,7 +369,7 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 			// is way seen in a zoom interval?
 			if (minZoomLevel <= this.zoomIntervalConfiguration.getMaxZoom(i)) {
 				Set<TileCoordinate> matchedTiles = GeoUtils.mapWayToTiles(way,
-						this.zoomIntervalConfiguration.getBaseZoom(i), bboxEnlargementLocal);
+						this.zoomIntervalConfiguration.getBaseZoom(i), bboxEnlargementLocal, mapModel);
 				boolean added = false;
 				for (TileCoordinate matchedTile : matchedTiles) {
 					TileData td = getTileImpl(i, matchedTile.getX(), matchedTile.getY());
@@ -417,10 +419,10 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 	protected abstract void handleVirtualOuterWay(TDWay virtualWay);
 
 	private int computeNumberOfHorizontalTiles(int zoomIntervalIndex) {
-		long tileCoordinateLeft = MercatorProjection.longitudeToTileX(this.boundingbox.minLongitude,
+		long tileCoordinateLeft = mapModel.longitudeToTileX(this.boundingbox.minLongitude,
 				this.zoomIntervalConfiguration.getBaseZoom(zoomIntervalIndex));
 
-		long tileCoordinateRight = MercatorProjection.longitudeToTileX(this.boundingbox.maxLongitude,
+		long tileCoordinateRight = mapModel.longitudeToTileX(this.boundingbox.maxLongitude,
 				this.zoomIntervalConfiguration.getBaseZoom(zoomIntervalIndex));
 
 		assert tileCoordinateLeft <= tileCoordinateRight;
@@ -433,10 +435,10 @@ abstract class BaseTileBasedDataProcessor implements TileBasedDataProcessor, Nod
 	}
 
 	private int computeNumberOfVerticalTiles(int zoomIntervalIndex) {
-		long tileCoordinateBottom = MercatorProjection.latitudeToTileY(this.boundingbox.minLatitude,
+		long tileCoordinateBottom = mapModel.latitudeToTileY(this.boundingbox.minLatitude,
 				this.zoomIntervalConfiguration.getBaseZoom(zoomIntervalIndex));
 
-		long tileCoordinateTop = MercatorProjection.latitudeToTileY(this.boundingbox.maxLatitude,
+		long tileCoordinateTop = mapModel.latitudeToTileY(this.boundingbox.maxLatitude,
 
 		this.zoomIntervalConfiguration.getBaseZoom(zoomIntervalIndex));
 

@@ -31,6 +31,7 @@ import org.mapsforge.core.mapelements.MapElementContainer;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Rectangle;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 
 class CanvasRasterer {
 	private final Canvas canvas;
@@ -47,7 +48,7 @@ class CanvasRasterer {
 		this.canvas.destroy();
 	}
 
-	void drawWays(List<List<List<ShapePaintContainer>>> drawWays, Tile tile) {
+	void drawWays(List<List<List<ShapePaintContainer>>> drawWays, Tile tile, MapModel mapModel) {
 		int levelsPerLayer = drawWays.get(0).size();
 
 		for (int layer = 0, layers = drawWays.size(); layer < layers; ++layer) {
@@ -57,13 +58,13 @@ class CanvasRasterer {
 				List<ShapePaintContainer> wayList = shapePaintContainers.get(level);
 
 				for (int index = wayList.size() - 1; index >= 0; --index) {
-					drawShapePaintContainer(wayList.get(index), tile);
+					drawShapePaintContainer(wayList.get(index), tile, mapModel);
 				}
 			}
 		}
 	}
 
-	void drawMapElements(Set<MapElementContainer> elements, Tile tile) {
+	void drawMapElements(Set<MapElementContainer> elements, Tile tile, MapModel mapModel) {
 		// we have a set of all map elements (needed so we do not draw elements twice),
 		// but we need to draw in priority order as we now allow overlaps. So we
 		// convert into list, then sort, then draw.
@@ -73,7 +74,7 @@ class CanvasRasterer {
 		Collections.sort(elementsAsList);
 
 		for (MapElementContainer element : elementsAsList) {
-			element.draw(canvas, tile.getOrigin(), this.symbolMatrix);
+			element.draw(canvas, tile.getOrigin(mapModel), this.symbolMatrix);
 		}
 	}
 
@@ -141,7 +142,7 @@ class CanvasRasterer {
 		this.canvas.drawPath(this.path, shapePaintContainer.paint);
 	}
 
-	private void drawShapePaintContainer(ShapePaintContainer shapePaintContainer, Tile tile) {
+	private void drawShapePaintContainer(ShapePaintContainer shapePaintContainer, Tile tile, MapModel mapModel) {
 		ShapeType shapeType = shapePaintContainer.shapeContainer.getShapeType();
 		switch (shapeType) {
 			case CIRCLE:
@@ -150,7 +151,7 @@ class CanvasRasterer {
 
 			case POLYLINE:
 				PolylineContainer polylineContainer = (PolylineContainer) shapePaintContainer.shapeContainer;
-				drawPath(shapePaintContainer, polylineContainer.getCoordinatesRelativeToTile(), shapePaintContainer.dy);
+				drawPath(shapePaintContainer, polylineContainer.getCoordinatesRelativeToTile(mapModel), shapePaintContainer.dy);
 				return;
 		}
 	}

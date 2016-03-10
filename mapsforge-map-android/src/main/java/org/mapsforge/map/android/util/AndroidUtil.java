@@ -18,6 +18,7 @@ package org.mapsforge.map.android.util;
 
 import java.io.File;
 
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
 import org.mapsforge.map.android.view.MapView;
 import org.mapsforge.map.layer.cache.FileSystemTileCache;
@@ -59,17 +60,19 @@ public final class AndroidUtil {
 	 *            returned by {@link android.content.Context#getExternalCacheDir()}).
 	 * @param firstLevelSize
 	 *            size of the first level cache
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param threaded
 	 *            if a background thread is employed to store tile data
 	 * @param queueSize
 	 *            maximum length of queue before the put operation blocks
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createExternalStorageTileCache(Context c, String id, int firstLevelSize, int tileSize,
+	public static TileCache createExternalStorageTileCache(Context c, String id, int firstLevelSize, int tileWidth, int tileHeight,
 			boolean threaded, int queueSize) {
-		return createExternalStorageTileCache(c, id, firstLevelSize, tileSize, threaded, queueSize, false);
+		return createExternalStorageTileCache(c, id, firstLevelSize, tileWidth, tileHeight, threaded, queueSize, false);
 	}
 
 	/**
@@ -82,8 +85,10 @@ public final class AndroidUtil {
 	 *            returned by {@link android.content.Context#getExternalCacheDir()}).
 	 * @param firstLevelSize
 	 *            size of the first level cache
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param threaded
 	 *            if a background thread is employed to store tile data
 	 * @param queueSize
@@ -92,7 +97,7 @@ public final class AndroidUtil {
 	 *            whether the second level tile cache should be persistent
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createExternalStorageTileCache(Context c, String id, int firstLevelSize, int tileSize,
+	public static TileCache createExternalStorageTileCache(Context c, String id, int firstLevelSize, int tileWidth, int tileHeight,
 	                                                       boolean threaded, int queueSize, boolean persistent) {
 		Log.d("TILECACHE INMEMORY SIZE", Integer.toString(firstLevelSize));
 		TileCache firstLevelTileCache = new InMemoryTileCache(firstLevelSize);
@@ -102,7 +107,7 @@ public final class AndroidUtil {
 			String cacheDirectoryName = cacheDir.getAbsolutePath() + File.separator + id;
 			File cacheDirectory = new File(cacheDirectoryName);
 			if (cacheDirectory.exists() || cacheDirectory.mkdir()) {
-				int tileCacheFiles = estimateSizeOfFileSystemCache(cacheDirectoryName, firstLevelSize, tileSize);
+				int tileCacheFiles = estimateSizeOfFileSystemCache(cacheDirectoryName, firstLevelSize, tileWidth, tileHeight);
 				if (cacheDirectory.canWrite() && tileCacheFiles > 0) {
 					try {
 						Log.d("TILECACHE FILECACHE SIZE", Integer.toString(tileCacheFiles));
@@ -128,8 +133,10 @@ public final class AndroidUtil {
 	 *            the Android context
 	 * @param id
 	 *            name for the storage directory
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param screenRatio
 	 *            part of the screen the view takes up
 	 * @param overdraw
@@ -142,10 +149,10 @@ public final class AndroidUtil {
 	 *            whether the second level tile cache should be persistent
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createTileCache(Context c, String id, int tileSize, float screenRatio, double overdraw,
+	public static TileCache createTileCache(Context c, String id, int tileWidth, int tileHeight, float screenRatio, double overdraw,
 	                                        boolean threaded, int queueSize, boolean persistent) {
-		int cacheSize = Math.round(getMinimumCacheSize(c, tileSize, overdraw, screenRatio));
-		return createExternalStorageTileCache(c, id, cacheSize, tileSize, threaded, queueSize, persistent);
+		int cacheSize = Math.round(getMinimumCacheSize(c, tileWidth, tileHeight, overdraw, screenRatio));
+		return createExternalStorageTileCache(c, id, cacheSize, tileWidth, tileHeight, threaded, queueSize, persistent);
 	}
 
 	/**
@@ -157,8 +164,10 @@ public final class AndroidUtil {
 	 *            the Android context
 	 * @param id
 	 *            name for the storage directory
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param screenRatio
 	 *            part of the screen the view takes up
 	 * @param overdraw
@@ -169,9 +178,9 @@ public final class AndroidUtil {
 	 *            maximum length of queue before the put operation blocks
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createTileCache(Context c, String id, int tileSize, float screenRatio, double overdraw,
+	public static TileCache createTileCache(Context c, String id, int tileWidth, int tileHeight, float screenRatio, double overdraw,
             boolean threaded, int queueSize) {
-		return createTileCache(c, id, tileSize, screenRatio, overdraw, threaded, queueSize, false);
+		return createTileCache(c, id, tileWidth, tileHeight, screenRatio, overdraw, threaded, queueSize, false);
 	}
 
 	/**
@@ -183,16 +192,18 @@ public final class AndroidUtil {
 	 *            the Android context
 	 * @param id
 	 *            name for the storage directory
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param screenRatio
 	 *            part of the screen the view takes up
 	 * @param overdraw
 	 *            overdraw allowance
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createTileCache(Context c, String id, int tileSize, float screenRatio, double overdraw) {
-		return createTileCache(c, id, tileSize, screenRatio, overdraw, false, 0, false);
+	public static TileCache createTileCache(Context c, String id, int tileWidth, int tileHeight, float screenRatio, double overdraw) {
+		return createTileCache(c, id, tileWidth, tileHeight, screenRatio, overdraw, false, 0, false);
 	}
 
 	/**
@@ -202,8 +213,10 @@ public final class AndroidUtil {
 	 *            the Android context
 	 * @param id
 	 *            name for the storage directory
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param width
 	 *            the width of the map view
 	 * @param height
@@ -218,10 +231,10 @@ public final class AndroidUtil {
 	 *            whether the cache should be persistent
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createTileCache(Context c, String id, int tileSize, int width, int height, double overdraw,
+	public static TileCache createTileCache(Context c, String id, int tileWidth, int tileHeight, int width, int height, double overdraw,
 	                                        boolean threaded, int queueSize, boolean persistent) {
-		int cacheSize = Math.round(getMinimumCacheSize(tileSize, overdraw, width, height));
-		return createExternalStorageTileCache(c, id, cacheSize, tileSize, threaded, queueSize, persistent);
+		int cacheSize = Math.round(getMinimumCacheSize(tileWidth, tileHeight, overdraw, width, height));
+		return createExternalStorageTileCache(c, id, cacheSize, tileWidth, tileHeight, threaded, queueSize, persistent);
 	}
 
 	/**
@@ -232,8 +245,10 @@ public final class AndroidUtil {
 	 *            the Android context
 	 * @param id
 	 *            name for the storage directory
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param width
 	 *            the width of the map view
 	 * @param height
@@ -246,9 +261,9 @@ public final class AndroidUtil {
 	 *            maximum length of queue before the put operation blocks
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createTileCache(Context c, String id, int tileSize, int width, int height, double overdraw,
+	public static TileCache createTileCache(Context c, String id, int tileWidth, int tileHeight, int width, int height, double overdraw,
 			boolean threaded, int queueSize) {
-		return createTileCache(c, id, tileSize, width, height, overdraw, threaded, queueSize, false);
+		return createTileCache(c, id, tileWidth, tileHeight, width, height, overdraw, threaded, queueSize, false);
 	}
 
 	/**
@@ -259,8 +274,10 @@ public final class AndroidUtil {
 	 *            the Android context
 	 * @param id
 	 *            name for the storage directory
-	 * @param tileSize
-	 *            tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param width
 	 *            the width of the map view
 	 * @param height
@@ -269,8 +286,8 @@ public final class AndroidUtil {
 	 *            overdraw allowance
 	 * @return a new cache created on the external storage
 	 */
-	public static TileCache createTileCache(Context c, String id, int tileSize, int width, int height, double overdraw) {
-		return createTileCache(c, id, tileSize, width, height, overdraw, false, 0, false);
+	public static TileCache createTileCache(Context c, String id, int tileWidth, int tileHeight, int width, int height, double overdraw) {
+		return createTileCache(c, id, tileWidth, tileHeight, width, height, overdraw, false, 0, false);
 	}
 
 	/**
@@ -286,9 +303,9 @@ public final class AndroidUtil {
 	 */
 	public static TileRendererLayer createTileRendererLayer(TileCache tileCache,
 	                                                        MapViewPosition mapViewPosition, MapDataStore mapFile,
-	                                                        XmlRenderTheme renderTheme, boolean hasAlpha, boolean renderLabels) {
+	                                                        XmlRenderTheme renderTheme, boolean hasAlpha, boolean renderLabels, MapModel mapModel) {
 		TileRendererLayer tileRendererLayer = new TileRendererLayer(tileCache, mapFile,
-				mapViewPosition, hasAlpha, renderLabels, AndroidGraphicFactory.INSTANCE);
+				mapViewPosition, hasAlpha, renderLabels, AndroidGraphicFactory.INSTANCE, mapModel);
 		tileRendererLayer.setXmlRenderTheme(renderTheme);
 		return tileRendererLayer;
 	}
@@ -303,13 +320,16 @@ public final class AndroidUtil {
 	/**
 	 * @param cacheDirectoryName where the file system tile cache will be located
 	 * @param firstLevelSize     size of the first level cache, no point cache being smaller
-	 * @param tileSize           tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @return recommended number of files in FileSystemTileCache
 	 */
-	public static int estimateSizeOfFileSystemCache(String cacheDirectoryName, int firstLevelSize, int tileSize) {
+	public static int estimateSizeOfFileSystemCache(String cacheDirectoryName, int firstLevelSize, int tileWidth, int tileHeight) {
 		// assumption on size of files in cache, on the large side as not to eat
 		// up all free space, real average probably 50K compressed
-		final int tileCacheFileSize = 4 * tileSize * tileSize;
+		final int tileCacheFileSize = 4 * tileWidth * tileHeight;
 		final int maxCacheFiles = 2000; // arbitrary, probably too high
 
 		// result cannot be bigger than maxCacheFiles
@@ -347,14 +367,17 @@ public final class AndroidUtil {
 	 * know the size of the mapview, so the screenRatio is an approximation of the required size.
 	 *
 	 * @param c              the context
-	 * @param tileSize       the tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param overdrawFactor the overdraw factor applied to the mapview
 	 * @param screenRatio    the part of the screen the view covers
 	 * @return the minimum cache size for the view
 	 */
 	@SuppressWarnings("deprecation")
 	@TargetApi(13)
-	public static int getMinimumCacheSize(Context c, int tileSize, double overdrawFactor, float screenRatio) {
+	public static int getMinimumCacheSize(Context c, int tileWidth, int tileHeight, double overdrawFactor, float screenRatio) {
 		WindowManager wm = (WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
 		Display display = wm.getDefaultDisplay();
 		int height;
@@ -378,28 +401,31 @@ public final class AndroidUtil {
 		// of a screen (the result can be too low if a MapView is very narrow).
 		// For any size we need a minimum of 4 (as the intersection of 4 tiles can always be in the
 		// middle of a view.
-		return (int) Math.max(4, screenRatio * (2 + (height * overdrawFactor / tileSize))
-				* (2 + (width * overdrawFactor / tileSize)));
+		return (int) Math.max(4, screenRatio * (2 + (height * overdrawFactor / tileHeight))
+				* (2 + (width * overdrawFactor / tileWidth)));
 	}
 
 	/**
 	 * Compute the minimum cache size for a view, using the size of the map view.
 	 *
-	 * @param tileSize       the tile size
+	 * @param tileWidth
+	 *            tile width
+	 * @param tileHeight
+	 *            tile height
 	 * @param overdrawFactor the overdraw factor applied to the mapview
 	 * @param width          the width of the map view
 	 * @param height         the height of the map view
 	 * @return the minimum cache size for the view
 	 */
-	public static int getMinimumCacheSize(int tileSize, double overdrawFactor, int width, int height) {
+	public static int getMinimumCacheSize(int tileWidth, int tileHeight, double overdrawFactor, int width, int height) {
 		// height  * overdrawFactor / tileSize calculates the number of tiles that would cover
 		// the view port, adding 1 is required since we can have part tiles on either side,
 		// adding 2 adds another row/column as spare and ensures that we will generally have
 		// a larger number of tiles in the cache than a TileLayer will render for a view.
 		// For any size we need a minimum of 4 (as the intersection of 4 tiles can always be in the
 		// middle of a view.
-		return (int) Math.max(4, (2 + (height * overdrawFactor / tileSize))
-				* (2 + (width * overdrawFactor / tileSize)));
+		return (int) Math.max(4, (2 + (height * overdrawFactor / tileHeight))
+				* (2 + (width * overdrawFactor / tileWidth)));
 	}
 
 	/**

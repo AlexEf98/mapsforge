@@ -16,6 +16,8 @@
 
 package org.mapsforge.map.model;
 
+import org.mapsforge.core.util.MapProjection;
+import org.mapsforge.core.util.MapProjectionProvider;
 import org.mapsforge.map.model.common.Observable;
 
 /**
@@ -146,7 +148,7 @@ public class DisplayModel extends Observable {
 	/**
 	 * Width and height of a map tile in pixel after system and user scaling is applied.
 	 */
-	public synchronized int getTileSize() {
+	public synchronized int getScaledTileSize() {
 		return tileSize;
 	}
 
@@ -255,4 +257,15 @@ public class DisplayModel extends Observable {
 		}
 		this.setMaxTextWidth();
 	}
+
+	private MapProjectionProvider projectionProvider;
+
+	public void setProjectionProvider(MapProjectionProvider projectionProvider) {
+		this.projectionProvider = projectionProvider;
+	}
+
+	public MapProjection getProjection(byte zoom) {
+		return projectionProvider.getProjection(zoom);
+	}
+
 }

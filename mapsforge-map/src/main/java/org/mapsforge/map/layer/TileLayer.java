@@ -26,6 +26,7 @@ import org.mapsforge.core.graphics.TileBitmap;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.cache.TileCache;
 import org.mapsforge.map.layer.queue.Job;
 import org.mapsforge.map.layer.queue.JobQueue;
@@ -40,12 +41,13 @@ public abstract class TileLayer<T extends Job> extends Layer {
 	protected final TileCache tileCache;
 	private final MapViewPosition mapViewPosition;
 	private final Matrix matrix;
+	protected MapModel mapModel;
 
-	public TileLayer(TileCache tileCache, MapViewPosition mapViewPosition, Matrix matrix, boolean isTransparent) {
-		this(tileCache, mapViewPosition, matrix, isTransparent, true);
+	public TileLayer(TileCache tileCache, MapViewPosition mapViewPosition, Matrix matrix, boolean isTransparent, MapModel mapModel) {
+		this(tileCache, mapViewPosition, matrix, isTransparent, true, mapModel);
 	}
 
-	public TileLayer(TileCache tileCache, MapViewPosition mapViewPosition, Matrix matrix, boolean isTransparent, boolean hasJobQueue) {
+	public TileLayer(TileCache tileCache, MapViewPosition mapViewPosition, Matrix matrix, boolean isTransparent, boolean hasJobQueue, MapModel mapModel) {
 		super();
 
 		if (tileCache == null) {
@@ -59,12 +61,13 @@ public abstract class TileLayer<T extends Job> extends Layer {
 		this.mapViewPosition = mapViewPosition;
 		this.matrix = matrix;
 		this.isTransparent = isTransparent;
+		this.mapModel = mapModel;
 	}
 
 	@Override
 	public void draw(BoundingBox boundingBox, byte zoomLevel, Canvas canvas, Point topLeftPoint) {
 		List<TilePosition> tilePositions = LayerUtil.getTilePositions(boundingBox, zoomLevel, topLeftPoint,
-				this.displayModel.getTileSize());
+				mapModel);
 
 		// In a rotation situation it is possible that drawParentTileBitmap sets the
 		// clipping bounds to portrait, while the device is just being rotated into
@@ -124,7 +127,7 @@ public abstract class TileLayer<T extends Job> extends Layer {
 	public synchronized void setDisplayModel(DisplayModel displayModel) {
 		super.setDisplayModel(displayModel);
 		if (displayModel != null && this.hasJobQueue) {
-			this.jobQueue = new JobQueue<T>(this.mapViewPosition, this.displayModel);
+			this.jobQueue = new JobQueue<T>(this.mapViewPosition, this.displayModel, mapModel);
 		} else {
 			this.jobQueue = null;
 		}
@@ -162,9 +165,10 @@ public abstract class TileLayer<T extends Job> extends Layer {
 		if (cachedParentTile != null) {
 			Bitmap bitmap = this.tileCache.getImmediately(createJob(cachedParentTile));
 			if (bitmap != null) {
-				int tileSize = this.displayModel.getTileSize();
-				long translateX = tile.getShiftX(cachedParentTile) * tileSize;
-				long translateY = tile.getShiftY(cachedParentTile) * tileSize;
+				int tileWidth = this.mapModel.getTileWidth();
+				int tileHeight = this.mapModel.getTileHeight();
+				long translateX = tile.getShiftX(cachedParentTile) * tileWidth;
+				long translateY = tile.getShiftY(cachedParentTile) * tileHeight;
 				byte zoomLevelDiff = (byte) (tile.zoomLevel - cachedParentTile.zoomLevel);
 				float scaleFactor = (float) Math.pow(2, zoomLevelDiff);
 
@@ -175,7 +179,7 @@ public abstract class TileLayer<T extends Job> extends Layer {
 				this.matrix.translate(x - translateX, y - translateY);
 				this.matrix.scale(scaleFactor, scaleFactor);
 
-				canvas.setClip(x, y, this.displayModel.getTileSize(), this.displayModel.getTileSize());
+				canvas.setClip(x, y, this.mapModel.getTileWidth(), this.mapModel.getTileHeight());
 				canvas.drawBitmap(bitmap, this.matrix);
 				canvas.resetClip();
 				bitmap.decrementRefCount();

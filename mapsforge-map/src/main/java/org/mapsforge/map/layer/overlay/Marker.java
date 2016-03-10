@@ -21,7 +21,7 @@ import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Rectangle;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.layer.Layer;
 
 /**
@@ -65,9 +65,9 @@ public class Marker extends Layer {
 			return;
 		}
 
-		long mapSize = MercatorProjection.getMapSize(zoomLevel, this.displayModel.getTileSize());
-		double pixelX = MercatorProjection.longitudeToPixelX(this.latLong.longitude, mapSize);
-		double pixelY = MercatorProjection.latitudeToPixelY(this.latLong.latitude, mapSize);
+		MapProjection projection = this.displayModel.getProjection(zoomLevel);
+		double pixelX = projection.longitudeToPixelX(this.latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(this.latLong.latitude);
 
 		int halfBitmapWidth = this.bitmap.getWidth() / 2;
 		int halfBitmapHeight = this.bitmap.getHeight() / 2;

@@ -21,6 +21,7 @@ import org.mapsforge.core.graphics.TileBitmap;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.TileLayer;
 import org.mapsforge.map.layer.cache.TileCache;
 import org.mapsforge.map.layer.download.tilesource.TileSource;
@@ -38,8 +39,8 @@ public class TileDownloadLayer extends TileLayer<DownloadJob> {
 	private final TileSource tileSource;
 
 	public TileDownloadLayer(TileCache tileCache, MapViewPosition mapViewPosition, TileSource tileSource,
-			GraphicFactory graphicFactory) {
-		super(tileCache, mapViewPosition, graphicFactory.createMatrix(), tileSource.hasAlpha());
+			GraphicFactory graphicFactory, MapModel mapModel) {
+		super(tileCache, mapViewPosition, graphicFactory.createMatrix(), tileSource.hasAlpha(), mapModel);
 
 		this.tileCache = tileCache;
 		this.tileSource = tileSource;
@@ -111,7 +112,7 @@ public class TileDownloadLayer extends TileLayer<DownloadJob> {
 			this.tileDownloadThreads = new TileDownloadThread[numberOfDownloadThreads];
 			for (int i = 0; i < numberOfDownloadThreads; ++i) {
 				this.tileDownloadThreads[i] = new TileDownloadThread(this.tileCache, this.jobQueue, this,
-						this.graphicFactory, this.displayModel);
+						this.graphicFactory, this.mapModel);
 			}
 		} else {
 			if (this.tileDownloadThreads != null) {

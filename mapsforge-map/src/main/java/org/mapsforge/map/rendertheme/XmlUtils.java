@@ -43,7 +43,7 @@ public final class XmlUtils {
 		}
 	}
 
-	public static ResourceBitmap createBitmap(GraphicFactory graphicFactory, DisplayModel displayModel,
+	public static ResourceBitmap createBitmap(GraphicFactory graphicFactory, float scaleFactor,
 			String relativePathPrefix, String src, int width, int height, int percent) throws IOException {
 		if (src == null || src.length() == 0) {
 			// no image source defined
@@ -61,7 +61,7 @@ public final class XmlUtils {
 			int hash = new StringBuilder().append(absoluteName).append(width).append(height).append(percent).toString().hashCode();
 			if (src.endsWith(".svg")) {
 				try {
-					return graphicFactory.renderSvg(inputStream, displayModel.getScaleFactor(), width, height, percent, hash);
+					return graphicFactory.renderSvg(inputStream, scaleFactor, width, height, percent, hash);
 				} catch (IOException e) {
 					throw new IOException("SVG render failed " + src, e);
 				}

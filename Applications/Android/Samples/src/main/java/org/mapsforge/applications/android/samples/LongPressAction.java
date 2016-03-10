@@ -21,11 +21,9 @@ import org.mapsforge.core.graphics.Style;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
 import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
 import org.mapsforge.map.layer.overlay.FixedPixelCircle;
 import org.mapsforge.map.layer.renderer.TileRendererLayer;
-import org.mapsforge.map.reader.MapFile;
 
 /**
  * Demonstrates how to enable a LongPress on a layer.

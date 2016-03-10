@@ -15,6 +15,7 @@
 package org.mapsforge.map.view;
 
 import org.mapsforge.core.model.Dimension;
+import org.mapsforge.core.util.MapProjectionProvider;
 import org.mapsforge.map.layer.LayerManager;
 import org.mapsforge.map.model.Model;
 import org.mapsforge.map.scalebar.MapScaleBar;

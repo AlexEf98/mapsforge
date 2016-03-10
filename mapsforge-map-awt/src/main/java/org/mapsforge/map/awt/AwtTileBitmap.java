@@ -58,8 +58,8 @@ public class AwtTileBitmap extends AwtBitmap implements TileBitmap {
 		this.timestamp = timestamp;
 	}
 
-	public AwtTileBitmap(int tileSize, boolean hasAlpha) {
-		super(tileSize, tileSize, hasAlpha);
+	public AwtTileBitmap(int width, int height, boolean hasAlpha) {
+		super(width, height, hasAlpha);
 	}
 
 	public AwtTileBitmap(BufferedImage bufferedImage) {

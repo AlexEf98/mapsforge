@@ -339,7 +339,7 @@ public class FileSystemTileCache extends PausableThread implements TileCache {
 		InputStream inputStream = null;
 		try {
 			inputStream = new FileInputStream(file);
-			TileBitmap result = this.graphicFactory.createTileBitmap(inputStream, key.tile.tileSize, key.hasAlpha);
+			TileBitmap result = this.graphicFactory.createTileBitmap(inputStream, key.tile.tileWidth, key.tile.tileHeight, key.hasAlpha);
 			result.setTimestamp(file.lastModified());
 			return result;
 		} catch (CorruptedInputStreamException e) {

@@ -64,8 +64,8 @@ class TileDownloader {
 		InputStream inputStream = getInputStream(urlConnection);
 
 		try {
-			TileBitmap result = this.graphicFactory.createTileBitmap(inputStream, this.downloadJob.tile.tileSize,
-					this.downloadJob.hasAlpha);
+			TileBitmap result = this.graphicFactory.createTileBitmap(inputStream, this.downloadJob.tile.tileWidth,
+					this.downloadJob.tile.tileHeight, this.downloadJob.hasAlpha);
 			result.setExpiration(urlConnection.getExpiration());
 			return result;
 		} catch (CorruptedInputStreamException e) {

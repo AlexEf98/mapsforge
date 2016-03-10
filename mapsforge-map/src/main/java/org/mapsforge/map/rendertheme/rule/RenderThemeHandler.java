@@ -25,6 +25,7 @@ import java.util.Stack;
 import java.util.logging.Logger;
 
 import org.kxml2.io.KXmlParser;
+import org.mapsforge.core.graphics.Display;
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.util.IOUtils;
 import org.mapsforge.map.model.DisplayModel;
@@ -178,7 +179,7 @@ public final class RenderThemeHandler {
 
 			else if ("area".equals(qName)) {
 				checkState(qName, Element.RENDERING_INSTRUCTION);
-				Area area = new Area(this.graphicFactory, this.displayModel, qName, pullParser, this.level++,
+				Area area = new Area(this.graphicFactory, displayModel, qName, pullParser, this.level++,
 						this.relativePathPrefix);
 				if (isVisible(area)) {
 					this.currentRule.addRenderingInstruction(area);

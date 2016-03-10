@@ -23,6 +23,8 @@ import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Dimension;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Point;
+import org.mapsforge.core.util.MapProjectionProvider;
+import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.model.MapViewPosition;
 import org.mapsforge.map.util.MapPositionUtil;
 import org.mapsforge.map.util.PausableThread;
@@ -81,9 +83,9 @@ public class LayerManager extends PausableThread implements Redrawer {
 
 			MapPosition mapPosition = this.mapViewPosition.getMapPosition();
 			Dimension canvasDimension = this.drawingCanvas.getDimension();
-			int tileSize = this.mapView.getModel().displayModel.getTileSize();
-			BoundingBox boundingBox = MapPositionUtil.getBoundingBox(mapPosition, canvasDimension, tileSize);
-			Point topLeftPoint = MapPositionUtil.getTopLeftPoint(mapPosition, canvasDimension, tileSize);
+			DisplayModel displayModel = this.mapView.getModel().displayModel;
+			BoundingBox boundingBox = MapPositionUtil.getBoundingBox(mapPosition, canvasDimension, displayModel);
+			Point topLeftPoint = MapPositionUtil.getTopLeftPoint(mapPosition, canvasDimension, displayModel);
 
 			for (Layer layer : this.layers) {
 				if (layer.isVisible()) {

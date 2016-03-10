@@ -22,7 +22,7 @@ import org.mapsforge.core.graphics.Paint;
 import org.mapsforge.core.graphics.Style;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.model.DisplayModel;
 
@@ -94,30 +94,30 @@ public class Grid extends Layer {
 			double minLatitude = spacing * (Math.floor(boundingBox.minLatitude / spacing));
 			double maxLatitude = spacing * (Math.ceil(boundingBox.maxLatitude / spacing));
 
-			long mapSize = MercatorProjection.getMapSize(zoomLevel, this.displayModel.getTileSize());
+			MapProjection projection = this.displayModel.getProjection(zoomLevel);
 
-			int bottom = (int) (MercatorProjection.latitudeToPixelY(minLatitude, mapSize) - topLeftPoint.y);
-			int top = (int) (MercatorProjection.latitudeToPixelY(maxLatitude, mapSize) - topLeftPoint.y);
-			int left = (int) (MercatorProjection.longitudeToPixelX(minLongitude, mapSize) - topLeftPoint.x);
-			int right = (int) (MercatorProjection.longitudeToPixelX(maxLongitude, mapSize) - topLeftPoint.x);
+			int bottom = (int) (projection.latitudeToPixelY(minLatitude) - topLeftPoint.y);
+			int top = (int) (projection.latitudeToPixelY(maxLatitude) - topLeftPoint.y);
+			int left = (int) (projection.longitudeToPixelX(minLongitude) - topLeftPoint.x);
+			int right = (int) (projection.longitudeToPixelX(maxLongitude) - topLeftPoint.x);
 
 			for (double latitude = minLatitude; latitude <= maxLatitude; latitude += spacing) {
-				int pixelY = (int) (MercatorProjection.latitudeToPixelY(latitude, mapSize) - topLeftPoint.y);
+				int pixelY = (int) (projection.latitudeToPixelY(latitude) - topLeftPoint.y);
 				canvas.drawLine(left, pixelY, right, pixelY, this.lineBack);
 			}
 
 			for (double longitude = minLongitude; longitude <= maxLongitude; longitude += spacing) {
-				int pixelX = (int) (MercatorProjection.longitudeToPixelX(longitude, mapSize) - topLeftPoint.x);
+				int pixelX = (int) (projection.longitudeToPixelX(longitude) - topLeftPoint.x);
 				canvas.drawLine(pixelX, bottom, pixelX, top, this.lineBack);
 			}
 
 			for (double latitude = minLatitude; latitude <= maxLatitude; latitude += spacing) {
-				int pixelY = (int) (MercatorProjection.latitudeToPixelY(latitude, mapSize) - topLeftPoint.y);
+				int pixelY = (int) (projection.latitudeToPixelY(latitude) - topLeftPoint.y);
 				canvas.drawLine(left, pixelY, right, pixelY, this.lineFront);
 			}
 
 			for (double longitude = minLongitude; longitude <= maxLongitude; longitude += spacing) {
-				int pixelX = (int) (MercatorProjection.longitudeToPixelX(longitude, mapSize) - topLeftPoint.x);
+				int pixelX = (int) (projection.longitudeToPixelX(longitude) - topLeftPoint.x);
 				canvas.drawLine(pixelX, bottom, pixelX, top, this.lineFront);
 			}
 		}

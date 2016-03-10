@@ -24,7 +24,8 @@ import java.util.logging.Logger;
 
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.util.LatLongUtils;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.writer.model.TDNode;
 import org.mapsforge.map.writer.model.TDWay;
 import org.mapsforge.map.writer.model.TileCoordinate;
@@ -83,13 +84,13 @@ public final class GeoUtils {
 	 * @return the clipped geometry
 	 */
 	public static Geometry clipToTile(TDWay way, Geometry geometry, TileCoordinate tileCoordinate,
-			int enlargementInMeters) {
+			int enlargementInMeters, MapModel mapModel) {
 		Geometry tileBBJTS = null;
 		Geometry ret = null;
 
 		// create tile bounding box
 		tileBBJTS = tileToJTSGeometry(tileCoordinate.getX(), tileCoordinate.getY(), tileCoordinate.getZoomlevel(),
-				enlargementInMeters);
+				enlargementInMeters, mapModel);
 
 		// clip the geometry by intersection with the bounding box of the tile
 		// may throw a TopologyException
@@ -139,7 +140,7 @@ public final class GeoUtils {
 	 *            process
 	 * @return a 16 bit short value that represents the information which of the sub tiles needs to include the way
 	 */
-	public static short computeBitmask(final Geometry geometry, final TileCoordinate tile, final int enlargementInMeter) {
+	public static short computeBitmask(final Geometry geometry, final TileCoordinate tile, final int enlargementInMeter, MapModel mapModel) {
 		List<TileCoordinate> subtiles = tile
 				.translateToZoomLevel((byte) (tile.getZoomlevel() + SUBTILE_ZOOMLEVEL_DIFFERENCE));
 
@@ -147,7 +148,7 @@ public final class GeoUtils {
 		int tileCounter = 0;
 		for (TileCoordinate subtile : subtiles) {
 			Geometry bbox = tileToJTSGeometry(subtile.getX(), subtile.getY(), subtile.getZoomlevel(),
-					enlargementInMeter);
+					enlargementInMeter, mapModel);
 			if (bbox.intersects(geometry)) {
 				bitmask |= TILE_BITMASK_VALUES[tileCounter];
 			}
@@ -181,8 +182,8 @@ public final class GeoUtils {
 	 *            the enlargement of the tile in meters
 	 * @return true, if the geometry is covered completely by this tile
 	 */
-	public static boolean coveredByTile(final Geometry geometry, final TileCoordinate tile, final int enlargementInMeter) {
-		Geometry bbox = tileToJTSGeometry(tile.getX(), tile.getY(), tile.getZoomlevel(), enlargementInMeter);
+	public static boolean coveredByTile(final Geometry geometry, final TileCoordinate tile, final int enlargementInMeter, MapModel mapModel) {
+		Geometry bbox = tileToJTSGeometry(tile.getX(), tile.getY(), tile.getZoomlevel(), enlargementInMeter, mapModel);
 		if (bbox.covers(geometry)) {
 			return true;
 		}
@@ -205,7 +206,7 @@ public final class GeoUtils {
 	 *         matched
 	 */
 	public static Set<TileCoordinate> mapWayToTiles(final TDWay way, final byte baseZoomLevel,
-			final int enlargementInMeter) {
+			final int enlargementInMeter, MapModel mapModel) {
 		if (way == null) {
 			LOGGER.fine("way is null in mapping to tiles");
 			return Collections.emptySet();
@@ -219,12 +220,12 @@ public final class GeoUtils {
 			return matchedTiles;
 		}
 
-		TileCoordinate[] bbox = getWayBoundingBox(way, baseZoomLevel, enlargementInMeter);
+		TileCoordinate[] bbox = getWayBoundingBox(way, baseZoomLevel, enlargementInMeter, mapModel);
 		// calculate the tile coordinates and the corresponding bounding boxes
 		try {
 			for (int k = bbox[0].getX(); k <= bbox[1].getX(); k++) {
 				for (int l = bbox[0].getY(); l <= bbox[1].getY(); l++) {
-					Geometry bboxGeometry = tileToJTSGeometry(k, l, baseZoomLevel, enlargementInMeter);
+					Geometry bboxGeometry = tileToJTSGeometry(k, l, baseZoomLevel, enlargementInMeter, mapModel);
 					if (bboxGeometry.intersects(wayGeometry)) {
 						matchedTiles.add(new TileCoordinate(k, l, baseZoomLevel));
 					}
@@ -240,26 +241,6 @@ public final class GeoUtils {
 	}
 
 	/**
-	 * @param latLong
-	 *            the point
-	 * @param tile
-	 *            the tile
-	 * @return true if the point is located in the given tile
-	 */
-	public static boolean pointInTile(LatLong latLong, TileCoordinate tile) {
-		if (latLong == null || tile == null) {
-			return false;
-		}
-
-		double lon1 = MercatorProjection.tileXToLongitude(tile.getX(), tile.getZoomlevel());
-		double lon2 = MercatorProjection.tileXToLongitude(tile.getX() + 1, tile.getZoomlevel());
-		double lat1 = MercatorProjection.tileYToLatitude(tile.getY(), tile.getZoomlevel());
-		double lat2 = MercatorProjection.tileYToLatitude(tile.getY() + 1, tile.getZoomlevel());
-		return latLong.latitude <= lat1 && latLong.latitude >= lat2 && latLong.longitude >= lon1
-				&& latLong.longitude <= lon2;
-	}
-
-	/**
 	 * Simplifies a geometry using the Douglas Peucker algorithm.
 	 * 
 	 * @param way
@@ -272,7 +253,7 @@ public final class GeoUtils {
 	 *            the simplification factor
 	 * @return the simplified geometry
 	 */
-	public static Geometry simplifyGeometry(TDWay way, Geometry geometry, byte zoomlevel, int tileSize,
+	public static Geometry simplifyGeometry(TDWay way, Geometry geometry, MapProjection projection,
 			double simplificationFactor) {
 		Geometry ret = null;
 
@@ -280,7 +261,7 @@ public final class GeoUtils {
 		// compute maximal absolute latitude (so that we don't need to care if we
 		// are on northern or southern hemisphere)
 		double latMax = Math.max(Math.abs(bbox.getMaxY()), Math.abs(bbox.getMinY()));
-		double deltaLat = deltaLat(simplificationFactor, latMax, zoomlevel, tileSize);
+		double deltaLat = deltaLat(simplificationFactor, latMax, projection);
 
 		try {
 			ret = TopologyPreservingSimplifier.simplify(geometry, deltaLat);
@@ -343,13 +324,13 @@ public final class GeoUtils {
 		return res;
 	}
 
-	private static double[] bufferInDegrees(long tileY, byte zoom, int enlargementInMeter) {
+	private static double[] bufferInDegrees(long tileY, byte zoom, int enlargementInMeter, MapModel mapModel) {
 		if (enlargementInMeter == 0) {
 			return EPSILON_ZERO;
 		}
 
 		double[] epsilons = new double[2];
-		double lat = MercatorProjection.tileYToLatitude(tileY, zoom);
+		double lat = mapModel.tileYToLatitude(tileY, zoom);
 		epsilons[0] = LatLongUtils.latitudeDistance(enlargementInMeter);
 		epsilons[1] = LatLongUtils.longitudeDistance(enlargementInMeter, lat);
 
@@ -372,15 +353,14 @@ public final class GeoUtils {
 	}
 
 	// Computes the amount of latitude degrees for a given distance in pixel at a given zoom level.
-	private static double deltaLat(double deltaPixel, double lat, byte zoom, int tileSize) {
-		long mapSize = MercatorProjection.getMapSize(zoom, tileSize);
-		double pixelY = MercatorProjection.latitudeToPixelY(lat, mapSize);
-		double lat2 = MercatorProjection.pixelYToLatitude(pixelY + deltaPixel, mapSize);
+	private static double deltaLat(double deltaPixel, double lat, MapProjection projection) {
+		double pixelY = projection.latitudeToPixelY(lat);
+		double lat2 = projection.pixelYToLatitude(pixelY + deltaPixel);
 
 		return Math.abs(lat2 - lat);
 	}
 
-	private static TileCoordinate[] getWayBoundingBox(final TDWay way, byte zoomlevel, int enlargementInMeter) {
+	private static TileCoordinate[] getWayBoundingBox(final TDWay way, byte zoomlevel, int enlargementInMeter, MapModel mapModel) {
 		double maxx = Double.NEGATIVE_INFINITY, maxy = Double.NEGATIVE_INFINITY, minx = Double.POSITIVE_INFINITY, miny = Double.POSITIVE_INFINITY;
 		for (TDNode coordinate : way.getWayNodes()) {
 			maxy = Math.max(maxy, LatLongUtils.microdegreesToDegrees(coordinate.getLatitude()));
@@ -393,22 +373,22 @@ public final class GeoUtils {
 		double[] epsilonsBottomRight = computeTileEnlargement(miny, enlargementInMeter);
 
 		TileCoordinate[] bbox = new TileCoordinate[2];
-		bbox[0] = new TileCoordinate((int) MercatorProjection.longitudeToTileX(minx - epsilonsTopLeft[1], zoomlevel),
-				(int) MercatorProjection.latitudeToTileY(maxy + epsilonsTopLeft[0], zoomlevel), zoomlevel);
+		bbox[0] = new TileCoordinate((int) mapModel.longitudeToTileX(minx - epsilonsTopLeft[1], zoomlevel),
+				(int) mapModel.latitudeToTileY(maxy + epsilonsTopLeft[0], zoomlevel), zoomlevel);
 		bbox[1] = new TileCoordinate(
-				(int) MercatorProjection.longitudeToTileX(maxx + epsilonsBottomRight[1], zoomlevel),
-				(int) MercatorProjection.latitudeToTileY(miny - epsilonsBottomRight[0], zoomlevel), zoomlevel);
+				(int) mapModel.longitudeToTileX(maxx + epsilonsBottomRight[1], zoomlevel),
+				(int) mapModel.latitudeToTileY(miny - epsilonsBottomRight[0], zoomlevel), zoomlevel);
 
 		return bbox;
 	}
 
-	private static Geometry tileToJTSGeometry(long tileX, long tileY, byte zoom, int enlargementInMeter) {
-		double minLat = MercatorProjection.tileYToLatitude(tileY + 1, zoom);
-		double maxLat = MercatorProjection.tileYToLatitude(tileY, zoom);
-		double minLon = MercatorProjection.tileXToLongitude(tileX, zoom);
-		double maxLon = MercatorProjection.tileXToLongitude(tileX + 1, zoom);
+	private static Geometry tileToJTSGeometry(long tileX, long tileY, byte zoom, int enlargementInMeter, MapModel mapModel) {
+		double minLat = mapModel.tileYToLatitude(tileY + 1, zoom);
+		double maxLat = mapModel.tileYToLatitude(tileY, zoom);
+		double minLon = mapModel.tileXToLongitude(tileX, zoom);
+		double maxLon = mapModel.tileXToLongitude(tileX + 1, zoom);
 
-		double[] epsilons = bufferInDegrees(tileY, zoom, enlargementInMeter);
+		double[] epsilons = bufferInDegrees(tileY, zoom, enlargementInMeter, mapModel);
 
 		minLon -= epsilons[1];
 		minLat -= epsilons[0];

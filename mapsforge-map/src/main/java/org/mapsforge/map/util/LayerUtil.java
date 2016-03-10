@@ -26,44 +26,45 @@ import org.mapsforge.core.mapelements.MapElementContainer;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Tile;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.TilePosition;
 
 public final class LayerUtil {
 
 	public static List<TilePosition> getTilePositions(BoundingBox boundingBox, byte zoomLevel, Point topLeftPoint,
-			int tileSize) {
-		int tileLeft = MercatorProjection.longitudeToTileX(boundingBox.minLongitude, zoomLevel);
-		int tileTop = MercatorProjection.latitudeToTileY(boundingBox.maxLatitude, zoomLevel);
-		int tileRight = MercatorProjection.longitudeToTileX(boundingBox.maxLongitude, zoomLevel);
-		int tileBottom = MercatorProjection.latitudeToTileY(boundingBox.minLatitude, zoomLevel);
+			MapModel mapModel) {
+		int tileLeft = mapModel.longitudeToTileX(boundingBox.minLongitude, zoomLevel);
+		int tileTop = mapModel.latitudeToTileY(boundingBox.maxLatitude, zoomLevel);
+		int tileRight = mapModel.longitudeToTileX(boundingBox.maxLongitude, zoomLevel);
+		int tileBottom = mapModel.latitudeToTileY(boundingBox.minLatitude, zoomLevel);
 
 		int initialCapacity = (tileRight - tileLeft + 1) * (tileBottom - tileTop + 1);
 		List<TilePosition> tilePositions = new ArrayList<TilePosition>(initialCapacity);
 
 		for (int tileY = tileTop; tileY <= tileBottom; ++tileY) {
 			for (int tileX = tileLeft; tileX <= tileRight; ++tileX) {
-				double pixelX = MercatorProjection.tileToPixel(tileX, tileSize) - topLeftPoint.x;
-				double pixelY = MercatorProjection.tileToPixel(tileY, tileSize) - topLeftPoint.y;
+				double pixelX = mapModel.tilePixelX(tileX) - topLeftPoint.x;
+				double pixelY = mapModel.tilePixelY(tileY) - topLeftPoint.y;
 
-				tilePositions.add(new TilePosition(new Tile(tileX, tileY, zoomLevel, tileSize), new Point(pixelX, pixelY)));
+				tilePositions.add(new TilePosition(new Tile(tileX, tileY, zoomLevel,
+						mapModel.getTileWidth(), mapModel.getTileHeight()), new Point(pixelX, pixelY)));
 			}
 		}
 
 		return tilePositions;
 	}
 
-	public static Set<Tile> getTiles(BoundingBox boundingBox, byte zoomLevel, int tileSize) {
-		int tileLeft = MercatorProjection.longitudeToTileX(boundingBox.minLongitude, zoomLevel);
-		int tileTop = MercatorProjection.latitudeToTileY(boundingBox.maxLatitude, zoomLevel);
-		int tileRight = MercatorProjection.longitudeToTileX(boundingBox.maxLongitude, zoomLevel);
-		int tileBottom = MercatorProjection.latitudeToTileY(boundingBox.minLatitude, zoomLevel);
+	public static Set<Tile> getTiles(BoundingBox boundingBox, byte zoomLevel, MapModel mapModel) {
+		int tileLeft = mapModel.longitudeToTileX(boundingBox.minLongitude, zoomLevel);
+		int tileTop = mapModel.latitudeToTileY(boundingBox.maxLatitude, zoomLevel);
+		int tileRight = mapModel.longitudeToTileX(boundingBox.maxLongitude, zoomLevel);
+		int tileBottom = mapModel.latitudeToTileY(boundingBox.minLatitude, zoomLevel);
 
 		Set<Tile> tiles = new HashSet<Tile>();
 
 		for (int tileY = tileTop; tileY <= tileBottom; ++tileY) {
 			for (int tileX = tileLeft; tileX <= tileRight; ++tileX) {
-				tiles.add(new Tile(tileX, tileY, zoomLevel, tileSize));
+				tiles.add(new Tile(tileX, tileY, zoomLevel, mapModel.getTileWidth(), mapModel.getTileHeight()));
 			}
 		}
 		return tiles;

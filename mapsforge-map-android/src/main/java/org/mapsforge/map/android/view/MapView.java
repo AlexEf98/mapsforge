@@ -18,6 +18,7 @@ package org.mapsforge.map.android.view;
 
 import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.model.Dimension;
+import org.mapsforge.core.util.MapProjectionProvider;
 import org.mapsforge.map.android.graphics.AndroidGraphicFactory;
 import org.mapsforge.map.android.input.MapZoomControls;
 import org.mapsforge.map.android.input.ScaleListener;
@@ -145,6 +146,10 @@ public class MapView extends ViewGroup implements org.mapsforge.map.view.MapView
 	@Override
 	public Model getModel() {
 		return this.model;
+	}
+
+	public void setProjectionProvider(MapProjectionProvider projectionProvider) {
+		this.model.displayModel.setProjectionProvider(projectionProvider);
 	}
 
 	@Override

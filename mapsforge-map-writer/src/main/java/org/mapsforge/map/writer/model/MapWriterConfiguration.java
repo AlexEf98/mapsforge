@@ -14,12 +14,21 @@
  */
 package org.mapsforge.map.writer.model;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.MalformedURLException;
+import java.net.URL;
 
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.util.LatLongUtils;
+import org.mapsforge.core.util.MapConfiguration;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapModelFactory;
 import org.mapsforge.map.writer.OSMTagMapping;
 
 /**
@@ -53,6 +62,9 @@ public class MapWriterConfiguration {
 
 	private String writerVersion;
 	private ZoomIntervalConfiguration zoomIntervalConfiguration;
+
+	private MapModel mapModel;
+	private String mapConfig;
 
 	/**
 	 * Convenience method.
@@ -296,13 +308,53 @@ public class MapWriterConfiguration {
 		return this.wayClipping;
 	}
 
+	public MapModel getMapModel() {
+		return mapModel;
+	}
+
+	public String getMapConfig() {
+		return mapConfig;
+	}
+
+	public void loadMapModel(String file) {
+		if (file != null) {
+			File f = new File(file);
+			if (!f.exists()) {
+				throw new IllegalArgumentException("map config file parameter points to a file that does not exist");
+			}
+			if (f.isDirectory()) {
+				throw new IllegalArgumentException("map config file parameter points to a directory, must be a file");
+			} else if (!f.canRead()) {
+				throw new IllegalArgumentException(
+						"map config file parameter points to a file we have no read permissions");
+			}
+
+			try {
+				this.mapConfig = MapConfiguration.getMapConfigString(f.toURI().toURL());
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			this.mapConfig = MapConfiguration.getDefaultMapConfigString();
+		}
+		this.mapModel = new MapModelFactory(MapConfiguration.getMapConfig(this.mapConfig)).createModel();
+	}
+
+	public byte zoomShift() {
+		return tagMapping.getZoomShift();
+	}
+
+	public void loadTagMappingFile(String file) {
+		loadTagMappingFile(file, (byte)0);
+	}
+
 	/**
 	 * Convenience method.
 	 * 
 	 * @param file
 	 *            the path to the output file
 	 */
-	public void loadTagMappingFile(String file) {
+	public void loadTagMappingFile(String file, byte zoomShift) {
 		if (file != null) {
 			File f = new File(file);
 			if (!f.exists()) {
@@ -316,12 +368,12 @@ public class MapWriterConfiguration {
 			}
 
 			try {
-				this.tagMapping = OSMTagMapping.getInstance(f.toURI().toURL());
+				this.tagMapping = OSMTagMapping.getInstance(f.toURI().toURL(), zoomShift);
 			} catch (MalformedURLException e) {
 				throw new RuntimeException(e);
 			}
 		} else {
-			this.tagMapping = OSMTagMapping.getInstance();
+			this.tagMapping = OSMTagMapping.getInstance(zoomShift);
 		}
 	}
 

@@ -17,6 +17,9 @@ package org.mapsforge.map.reader.header;
 
 import java.io.IOException;
 
+import org.mapsforge.core.util.MapConfiguration;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapModelFactory;
 import org.mapsforge.map.reader.ReadBuffer;
 
 /**
@@ -43,10 +46,18 @@ public class MapFileHeader {
 	 */
 	private static final char SPACE = ' ';
 
+	/**
+	 * The name of the Mercator projection as stored in the file header.
+	 */
+	private static final String MERCATOR = "Mercator";
+
 	private MapFileInfo mapFileInfo;
 	private SubFileParameter[] subFileParameters;
 	private byte zoomLevelMaximum;
 	private byte zoomLevelMinimum;
+
+	private MapModelFactory mapModelFactory;
+	private MapModel mapModel;
 
 	/**
 	 * @return a MapFileInfo containing the header data.
@@ -76,6 +87,14 @@ public class MapFileHeader {
 	 */
 	public SubFileParameter getSubFileParameter(int queryZoomLevel) {
 		return this.subFileParameters[queryZoomLevel];
+	}
+
+	public MapModelFactory getMapModelFactory() {
+		return mapModelFactory;
+	}
+
+	public MapModel getMapModel() {
+		return mapModel;
 	}
 
 	/**
@@ -113,6 +132,14 @@ public class MapFileHeader {
 
 		RequiredFields.readWayTags(readBuffer, mapFileInfoBuilder);
 
+		MapConfiguration mapConfig;
+		if (MERCATOR.equals(mapFileInfoBuilder.projectionName)) {
+			mapConfig = MapConfiguration.getDefaultMapConfig();
+		} else {
+			mapConfig = MapConfiguration.getMapConfig(mapFileInfoBuilder.projectionName);
+		}
+		this.mapModelFactory = new MapModelFactory(mapConfig);
+		this.mapModel = mapModelFactory.createModel();
 		readSubFileParameters(readBuffer, fileSize, mapFileInfoBuilder);
 
 		this.mapFileInfo = mapFileInfoBuilder.build();
@@ -185,7 +212,7 @@ public class MapFileHeader {
 			subFileParameterBuilder.boundingBox = mapFileInfoBuilder.boundingBox;
 
 			// add the current sub-file to the list of sub-files
-			tempSubFileParameters[currentSubFile] = subFileParameterBuilder.build();
+			tempSubFileParameters[currentSubFile] = subFileParameterBuilder.build(mapModel);
 
 
 			// update the global minimum and maximum zoom level information

@@ -19,6 +19,7 @@ package org.mapsforge.map.reader;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -167,6 +168,12 @@ public class MultiMapDataStore implements MapDataStore {
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public MapModel getMapModel(int tileSize) {
+		// TODO implement
+		return null;
 	}
 
 	private MapReadResult readMapData(Tile tile, boolean deduplicate) {

@@ -18,7 +18,7 @@ package org.mapsforge.map.util;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.view.MapView;
 
 public class MapViewProjection {
@@ -51,15 +51,15 @@ public class MapViewProjection {
 
 		// calculate the pixel coordinates of the top left corner
 		LatLong latLong = mapPosition.latLong;
-		long mapSize = MercatorProjection.getMapSize(mapPosition.zoomLevel, this.mapView.getModel().displayModel.getTileSize());
-		double pixelX = MercatorProjection.longitudeToPixelX(latLong.longitude, mapSize);
-		double pixelY = MercatorProjection.latitudeToPixelY(latLong.latitude, mapSize);
+		MapProjection projection = this.mapView.getModel().displayModel.getProjection(mapPosition.zoomLevel);
+		double pixelX = projection.longitudeToPixelX(latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(latLong.latitude);
 		pixelX -= this.mapView.getWidth() >> 1;
 		pixelY -= this.mapView.getHeight() >> 1;
 
 		// convert the pixel coordinates to a LatLong and return it
-		return new LatLong(MercatorProjection.pixelYToLatitude(pixelY + y, mapSize),
-				MercatorProjection.pixelXToLongitude(pixelX + x, mapSize));
+		return new LatLong(projection.pixelYToLatitude(pixelY + y),
+				projection.pixelXToLongitude(pixelX + x));
 	}
 
 	/**
@@ -106,16 +106,16 @@ public class MapViewProjection {
 
 		// calculate the pixel coordinates of the top left corner
 		LatLong latLong = mapPosition.latLong;
-		long mapSize = MercatorProjection.getMapSize(mapPosition.zoomLevel, this.mapView.getModel().displayModel.getTileSize());
-		double pixelX = MercatorProjection.longitudeToPixelX(latLong.longitude, mapSize);
-		double pixelY = MercatorProjection.latitudeToPixelY(latLong.latitude, mapSize);
+		MapProjection projection = this.mapView.getModel().displayModel.getProjection(mapPosition.zoomLevel);
+		double pixelX = projection.longitudeToPixelX(latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(latLong.latitude);
 		pixelX -= this.mapView.getWidth() >> 1;
 		pixelY -= this.mapView.getHeight() >> 1;
 
 		// create a new point and return it
 		return new Point(
-				(int) (MercatorProjection.longitudeToPixelX(in.longitude, mapSize) - pixelX),
-				(int) (MercatorProjection.latitudeToPixelY(in.latitude, mapSize) - pixelY));
+				(int) (projection.longitudeToPixelX(in.longitude) - pixelX),
+				(int) (projection.latitudeToPixelY(in.latitude) - pixelY));
 	}
 
 }

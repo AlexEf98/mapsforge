@@ -17,7 +17,6 @@
 package org.mapsforge.map.layer.renderer;
 
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -25,10 +24,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.mapsforge.core.graphics.Bitmap;
+import org.mapsforge.core.graphics.Canvas;
 import org.mapsforge.core.graphics.Color;
 import org.mapsforge.core.graphics.Display;
 import org.mapsforge.core.mapelements.MapElementContainer;
@@ -42,10 +41,10 @@ import org.mapsforge.core.model.Point;
 import org.mapsforge.core.model.Rectangle;
 import org.mapsforge.core.model.Tag;
 import org.mapsforge.core.model.Tile;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapModel;
+import org.mapsforge.core.util.MapProjection;
 import org.mapsforge.map.layer.cache.TileCache;
 import org.mapsforge.map.layer.labels.TileBasedLabelStore;
-import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.reader.MapDataStore;
 import org.mapsforge.map.reader.MapReadResult;
 import org.mapsforge.map.reader.PointOfInterest;
@@ -53,9 +52,7 @@ import org.mapsforge.map.reader.Way;
 import org.mapsforge.map.rendertheme.RenderCallback;
 import org.mapsforge.map.rendertheme.XmlRenderTheme;
 import org.mapsforge.map.rendertheme.rule.RenderTheme;
-import org.mapsforge.map.rendertheme.rule.RenderThemeHandler;
 import org.mapsforge.map.util.LayerUtil;
-import org.xmlpull.v1.XmlPullParserException;
 
 
 /**
@@ -77,12 +74,12 @@ public class DatabaseRenderer implements RenderCallback {
 	private static final Tag TAG_NATURAL_WATER = new Tag("natural", "water");
 	private static final byte ZOOM_MAX = 22;
 
-	private static Point[] getTilePixelCoordinates(int tileSize) {
+	private static Point[] getTilePixelCoordinates(int tileWidth, int tileHeight) {
 		Point[] result = new Point[5];
 		result[0] = new Point(0, 0);
-		result[1] = new Point(tileSize, 0);
-		result[2] = new Point(tileSize, tileSize);
-		result[3] = new Point(0, tileSize);
+		result[1] = new Point(tileWidth, 0);
+		result[2] = new Point(tileWidth, tileHeight);
+		result[3] = new Point(0, tileHeight);
 		result[4] = result[0];
 		return result;
 	}
@@ -109,6 +106,7 @@ public class DatabaseRenderer implements RenderCallback {
 	private List<List<List<ShapePaintContainer>>> ways;
 	private final TileCache tileCache;
 	private final TileDependencies tileDependencies;
+	private final MapModel mapModel;
 
 	/**
 	 * Constructs a new DatabaseRenderer that will not draw labels, instead it stores the label
@@ -118,7 +116,7 @@ public class DatabaseRenderer implements RenderCallback {
 	 *            the MapDatabase from which the map data will be read.
 	 */
 	public DatabaseRenderer(MapDataStore mapDatabase, GraphicFactory graphicFactory,
-	                        TileBasedLabelStore labelStore) {
+	                        TileBasedLabelStore labelStore, MapModel mapModel) {
 		this.mapDatabase = mapDatabase;
 		this.graphicFactory = graphicFactory;
 
@@ -127,6 +125,7 @@ public class DatabaseRenderer implements RenderCallback {
 		this.renderLabels = false;
 		this.tileCache = null;
 		this.tileDependencies = null;
+		this.mapModel = mapModel;
 	}
 
 	/**
@@ -136,7 +135,7 @@ public class DatabaseRenderer implements RenderCallback {
 	 *            the MapDatabase from which the map data will be read.
 	 */
 	public DatabaseRenderer(MapDataStore mapFile, GraphicFactory graphicFactory,
-	                        TileCache tileCache) {
+	                        TileCache tileCache, MapModel mapModel) {
 		this.mapDatabase = mapFile;
 		this.graphicFactory = graphicFactory;
 
@@ -145,6 +144,7 @@ public class DatabaseRenderer implements RenderCallback {
 		this.renderLabels = true;
 		this.tileCache = tileCache;
 		this.tileDependencies = new TileDependencies();
+		this.mapModel = mapModel;
 	}
 
 
@@ -159,7 +159,8 @@ public class DatabaseRenderer implements RenderCallback {
 	 *            the job that should be executed.
 	 */
 	public TileBitmap executeJob(RendererJob rendererJob) {
-		final int tileSize = rendererJob.tile.tileSize;
+		final int tileWidth = rendererJob.tile.tileWidth;
+		final int tileHeight = rendererJob.tile.tileHeight;
 		final byte zoomLevel = rendererJob.tile.zoomLevel;
 
 		this.currentLabels = new LinkedList<MapElementContainer>();
@@ -179,19 +180,41 @@ public class DatabaseRenderer implements RenderCallback {
 			setScaleStrokeWidth(zoomLevel);
 			this.renderTheme.scaleTextSize(rendererJob.textScale);
 
+			long t = System.currentTimeMillis();
+			int poiCounter = 0;
+			int wayCounter = 0;
+			long spentRead = 0;
+			long spentDraw = 0;
 			if (this.mapDatabase != null) {
 				MapReadResult mapReadResult = this.mapDatabase.readMapData(rendererJob.tile);
+				poiCounter = mapReadResult.pointOfInterests.size();
+				wayCounter = mapReadResult.ways.size();
+				spentRead = System.currentTimeMillis() -t;
+				t = System.currentTimeMillis();
 				processReadMapData(ways, mapReadResult, rendererJob.tile);
 			}
 
 			if (!rendererJob.labelsOnly) {
-				bitmap = this.graphicFactory.createTileBitmap(tileSize, rendererJob.hasAlpha);
+				bitmap = this.graphicFactory.createTileBitmap(tileWidth, tileHeight, rendererJob.hasAlpha);
 				bitmap.setTimestamp(rendererJob.mapDataStore.getDataTimestamp(rendererJob.tile));
 				this.canvasRasterer.setCanvasBitmap(bitmap);
 				if (!rendererJob.hasAlpha && rendererJob.displayModel.getBackgroundColor() != this.renderTheme.getMapBackground()) {
 					this.canvasRasterer.fill(this.renderTheme.getMapBackground());
 				}
-				this.canvasRasterer.drawWays(ways, rendererJob.tile);
+				this.canvasRasterer.drawWays(ways, rendererJob.tile, mapModel);
+
+				spentDraw = System.currentTimeMillis() -t;
+
+				Paint paint = this.graphicFactory.createPaint();
+				paint.setColor(Color.BLACK);
+				paint.setTextSize(20);
+				String text = "p=" + poiCounter + " w=" + wayCounter;
+				Canvas c = this.graphicFactory.createCanvas();
+				c.setBitmap(bitmap);
+				c.drawText(text, 10, 50, paint);
+				text = "r=" + spentRead + "ms d=" + spentDraw + "ms";
+				c.drawText(text, 10, 100, paint);
+				c.destroy();
 			}
 
 			if (renderLabels) {
@@ -202,7 +225,7 @@ public class DatabaseRenderer implements RenderCallback {
 				// first we need to get the labels from the adjacent tiles if they have already been drawn
 				// as those overlapping items must also be drawn on the current tile. They must be drawn regardless
 				// of priority clashes as a part of them has alread been drawn.
-				Set<Tile> neighbours = rendererJob.tile.getNeighbours();
+				Set<Tile> neighbours = rendererJob.tile.getNeighbours(mapModel);
 				Iterator<Tile> tileIterator = neighbours.iterator();
 				Set<MapElementContainer> undrawableElements = new HashSet<MapElementContainer>();
 				while (tileIterator.hasNext()) {
@@ -215,7 +238,7 @@ public class DatabaseRenderer implements RenderCallback {
 
 						// but we need to remove the labels for this tile that overlap onto a tile that has been drawn
 						for (MapElementContainer current : currentLabels) {
-							if (current.intersects(neighbour.getBoundaryAbsolute())) {
+							if (current.intersects(neighbour.getBoundaryAbsolute(mapModel))) {
 								undrawableElements.add(current);
 							}
 						}
@@ -256,13 +279,13 @@ public class DatabaseRenderer implements RenderCallback {
 				for (Tile tile : neighbours) {
 					tileDependencies.removeTileData(rendererJob.tile, tile);
 					for (MapElementContainer element : labelsToDraw) {
-						if (element.intersects(tile.getBoundaryAbsolute())) {
+						if (element.intersects(tile.getBoundaryAbsolute(mapModel))) {
 							tileDependencies.addOverlappingElement(rendererJob.tile, tile, element);
 						}
 					}
 				}
 				// now draw the ways and the labels
-				this.canvasRasterer.drawMapElements(labelsToDraw, rendererJob.tile);
+				this.canvasRasterer.drawMapElements(labelsToDraw, rendererJob.tile, mapModel);
 			} else {
 				// store elements for this tile in the label cache
 				this.labelStore.storeMapItems(rendererJob.tile, this.currentLabels);
@@ -278,7 +301,7 @@ public class DatabaseRenderer implements RenderCallback {
 
 			if (this.renderTheme.hasMapBackgroundOutside()) {
 				// blank out all areas outside of map
-				Rectangle insideArea = this.mapDatabase.boundingBox().getPositionRelativeToTile(rendererJob.tile);
+				Rectangle insideArea = this.mapDatabase.boundingBox().getPositionRelativeToTile(rendererJob.tile, mapModel);
 				if (!rendererJob.hasAlpha) {
 					this.canvasRasterer.fillOutsideAreas(this.renderTheme.getMapBackgroundOutside(), insideArea);
 				} else {
@@ -288,7 +311,7 @@ public class DatabaseRenderer implements RenderCallback {
 		} else {
 			// tile is entirely outside the map area, so draw everything with outside
 			// color
-			bitmap = this.graphicFactory.createTileBitmap(tileSize, rendererJob.hasAlpha);
+			bitmap = this.graphicFactory.createTileBitmap(tileWidth, tileHeight, rendererJob.hasAlpha);
 			this.canvasRasterer.setCanvasBitmap(bitmap);
 			if (!rendererJob.hasAlpha) {
 				this.canvasRasterer.fill(this.renderTheme.getMapBackgroundOutside());
@@ -339,13 +362,13 @@ public class DatabaseRenderer implements RenderCallback {
 	@Override
 	public void renderAreaCaption(PolylineContainer way, Display display, int priority, String caption, float horizontalOffset, float verticalOffset,
 	                              Paint fill, Paint stroke, Position position, int maxTextWidth) {
-		Point centerPoint = way.getCenterAbsolute().offset(horizontalOffset, verticalOffset);
+		Point centerPoint = way.getCenterAbsolute(mapModel).offset(horizontalOffset, verticalOffset);
 		this.currentLabels.add(this.graphicFactory.createPointTextContainer(centerPoint, display, priority, caption, fill, stroke, null, position, maxTextWidth));
 	}
 
 	@Override
 	public void renderAreaSymbol(PolylineContainer way, Display display, int priority, Bitmap symbol) {
-		Point centerPosition = way.getCenterAbsolute();
+		Point centerPosition = way.getCenterAbsolute(mapModel);
 
 		this.currentLabels.add(new SymbolContainer(centerPosition, display, priority, symbol));
 	}
@@ -353,7 +376,7 @@ public class DatabaseRenderer implements RenderCallback {
 	@Override
 	public void renderPointOfInterestCaption(PointOfInterest poi, Display display, int priority, String caption, float horizontalOffset, float verticalOffset,
 	                                         Paint fill, Paint stroke, Position position, int maxTextWidth, Tile tile) {
-		Point poiPosition = MercatorProjection.getPixelAbsolute(poi.position, tile.mapSize);
+		Point poiPosition = getPixelAbsolute(poi.position, tile.zoomLevel);
 
 		this.currentLabels.add(this.graphicFactory.createPointTextContainer(poiPosition.offset(horizontalOffset, verticalOffset), display, priority, caption, fill,
 				stroke, null, position, maxTextWidth));
@@ -362,14 +385,14 @@ public class DatabaseRenderer implements RenderCallback {
 	@Override
 	public void renderPointOfInterestCircle(PointOfInterest poi, float radius, Paint fill, Paint stroke, int level, Tile tile) {
 		List<ShapePaintContainer> list = this.drawingLayers.get(level);
-		Point poiPosition = MercatorProjection.getPixelRelativeToTile(poi.position, tile);
+		Point poiPosition = tile.getPixelRelativeToTile(poi.position, mapModel);
 		list.add(new ShapePaintContainer(new CircleContainer(poiPosition, radius), stroke));
 		list.add(new ShapePaintContainer(new CircleContainer(poiPosition, radius), fill));
 	}
 
 	@Override
 	public void renderPointOfInterestSymbol(PointOfInterest poi, Display display, int priority, Bitmap symbol, Tile tile) {
-		Point poiPosition = MercatorProjection.getPixelAbsolute(poi.position, tile.mapSize);
+		Point poiPosition = getPixelAbsolute(poi.position, tile.zoomLevel);
 		this.currentLabels.add(new SymbolContainer(poiPosition, display, priority, symbol));
 	}
 
@@ -382,12 +405,19 @@ public class DatabaseRenderer implements RenderCallback {
 	public void renderWaySymbol(PolylineContainer way, Display display, int priority, Bitmap symbol, float dy, boolean alignCenter, boolean repeat,
 	                     float repeatGap, float repeatStart, boolean rotate) {
 		WayDecorator.renderSymbol(symbol, display, priority, dy, alignCenter, repeat, repeatGap,
-				repeatStart, rotate, way.getCoordinatesAbsolute(), this.currentLabels);
+				repeatStart, rotate, way.getCoordinatesAbsolute(mapModel), this.currentLabels);
 	}
 
 	@Override
 	public void renderWayText(PolylineContainer way, Display display, int priority, String textKey, float dy, Paint fill, Paint stroke) {
-		WayDecorator.renderText(way.getTile(), textKey, display, priority, dy, fill, stroke, way.getCoordinatesAbsolute(), this.currentLabels);
+		WayDecorator.renderText(way.getTile(), textKey, display, priority, dy, fill, stroke, way.getCoordinatesAbsolute(mapModel), this.currentLabels, mapModel);
+	}
+
+	private Point getPixelAbsolute(LatLong latLong, byte zoom) {
+		MapProjection projection = mapModel.getProjection(zoom);
+		double pixelX = projection.longitudeToPixelX(latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(latLong.latitude);
+		return new Point(pixelX, pixelY);
 	}
 
 	private List<List<List<ShapePaintContainer>>> createWayLists() {
@@ -414,11 +444,11 @@ public class DatabaseRenderer implements RenderCallback {
 		}
 
 		for (Way way : mapReadResult.ways) {
-			renderWay(ways, new PolylineContainer(way, tile));
+			renderWay(ways, new PolylineContainer(way, tile), mapModel);
 		}
 
 		if (mapReadResult.isWater) {
-			renderWaterBackground(ways, tile);
+			renderWaterBackground(ways, tile, mapModel);
 		}
 	}
 
@@ -427,20 +457,20 @@ public class DatabaseRenderer implements RenderCallback {
 		this.renderTheme.matchNode(this, pointOfInterest, tile);
 	}
 
-	private void renderWaterBackground(final List<List<List<ShapePaintContainer>>> ways, Tile tile) {
+	private void renderWaterBackground(final List<List<List<ShapePaintContainer>>> ways, Tile tile, MapModel mapModel) {
 		this.drawingLayers = ways.get(0);
-		Point[] coordinates = getTilePixelCoordinates(tile.tileSize);
+		Point[] coordinates = getTilePixelCoordinates(tile.tileWidth, tile.tileHeight);
 		PolylineContainer way = new PolylineContainer(coordinates, tile, Arrays.asList(TAG_NATURAL_WATER));
-		this.renderTheme.matchClosedWay(this, way);
+		this.renderTheme.matchClosedWay(this, way, mapModel);
 	}
 
-	private void renderWay(final List<List<List<ShapePaintContainer>>> ways, PolylineContainer way) {
+	private void renderWay(final List<List<List<ShapePaintContainer>>> ways, PolylineContainer way, MapModel mapModel) {
 		this.drawingLayers = ways.get(getValidLayer(way.getLayer()));
 
 		if (way.isClosedWay()) {
-			this.renderTheme.matchClosedWay(this, way);
+			this.renderTheme.matchClosedWay(this, way, mapModel);
 		} else {
-			this.renderTheme.matchLinearWay(this, way);
+			this.renderTheme.matchLinearWay(this, way, mapModel);
 		}
 	}
 
@@ -451,7 +481,13 @@ public class DatabaseRenderer implements RenderCallback {
 	 *            the zoom level for which the scale stroke factor should be set.
 	 */
 	private void setScaleStrokeWidth(byte zoomLevel) {
-		int zoomLevelDiff = Math.max(zoomLevel - STROKE_MIN_ZOOM_LEVEL, 0);
+		MapProjection mapProjection = mapModel.getProjection((byte)0);
+		double lon1 = mapProjection.pixelXToLongitude(0);
+		double lon2 = mapProjection.pixelXToLongitude(1);
+		double k0 = lon2 - lon1;
+		byte zoomShift = (byte) Math.round(Math.log(360 / (256 * k0)) / Math.log(2));
+		byte zoomTr = (byte) (STROKE_MIN_ZOOM_LEVEL - zoomShift);
+		int zoomLevelDiff = Math.max(zoomLevel - zoomTr, 0);
 		this.renderTheme.scaleStrokeWidth((float) Math.pow(STROKE_INCREASE, zoomLevelDiff));
 	}
 

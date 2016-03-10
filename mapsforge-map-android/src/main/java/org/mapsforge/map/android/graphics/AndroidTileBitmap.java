@@ -59,15 +59,15 @@ public class AndroidTileBitmap extends AndroidBitmap implements TileBitmap {
 		}
 	}
 
-	private static int composeHash(int tileSize, boolean isTransparent) {
+	private static int composeHash(int tileWidth, int tileHeight, boolean isTransparent) {
 		if (isTransparent) {
-			return tileSize + 0x10000000;
+			return tileWidth + (tileHeight << 15) + 0x10000000;
 		}
-		return tileSize;
+		return tileWidth + (tileHeight << 15);
 	}
 
-	private static android.graphics.Bitmap getTileBitmapFromReusableSet(int tileSize, boolean isTransparent) {
-		int hash = composeHash(tileSize, isTransparent);
+	private static android.graphics.Bitmap getTileBitmapFromReusableSet(int tileWidth, int tileHeight, boolean isTransparent) {
+		int hash = composeHash(tileWidth, tileHeight, isTransparent);
 		Set<SoftReference<Bitmap>> subSet = reusableTileBitmaps.get(hash);
 
 		if (subSet == null) {
@@ -105,14 +105,14 @@ public class AndroidTileBitmap extends AndroidBitmap implements TileBitmap {
 	 * caught by client classes. We do not catch it here to allow proper handling in the higher levels (like redownload
 	 * or reload from file storage).
 	 */
-	AndroidTileBitmap(InputStream inputStream, int tileSize, boolean isTransparent) {
+	AndroidTileBitmap(InputStream inputStream, int tileWidth, int tileHeight, boolean isTransparent) {
 		super();
 		try {
 			if (AndroidGraphicFactory.DEBUG_BITMAPS) {
 				tileInstances.incrementAndGet();
 			}
 			this.bitmap = BitmapFactory.decodeStream(inputStream, null,
-					createTileBitmapFactoryOptions(tileSize, isTransparent));
+					createTileBitmapFactoryOptions(tileWidth, tileHeight, isTransparent));
 			// somehow on Android the decode stream can succeed, but the bitmap remains invalid.
 			// Asking for the width forces the bitmap to be fully loaded and a NullPointerException
 			// is triggered if the stream is not readable,
@@ -131,15 +131,15 @@ public class AndroidTileBitmap extends AndroidBitmap implements TileBitmap {
 		}
 	}
 
-	AndroidTileBitmap(int tileSize, boolean isTransparent) {
+	AndroidTileBitmap(int tileWidth, int tileHeight, boolean isTransparent) {
 		super();
 		if (AndroidUtil.HONEYCOMB_PLUS) {
-			this.bitmap = getTileBitmapFromReusableSet(tileSize, isTransparent);
+			this.bitmap = getTileBitmapFromReusableSet(tileWidth, tileHeight, isTransparent);
 		}
 		if (this.bitmap == null) {
 			android.graphics.Bitmap.Config config = isTransparent ? AndroidGraphicFactory.TRANSPARENT_BITMAP
 					: AndroidGraphicFactory.NON_TRANSPARENT_BITMAP;
-			this.bitmap = AndroidBitmap.createAndroidBitmap(tileSize, tileSize, config);
+			this.bitmap = AndroidBitmap.createAndroidBitmap(tileWidth, tileHeight, config);
 		}
 		if (AndroidGraphicFactory.DEBUG_BITMAPS) {
 			tileInstances.incrementAndGet();
@@ -182,9 +182,10 @@ public class AndroidTileBitmap extends AndroidBitmap implements TileBitmap {
 		if (this.bitmap != null) {
 			// bitmap can be null if there is an error creating it
 			if (AndroidUtil.HONEYCOMB_PLUS) {
-				final int tileSize = this.getHeight();
+				final int tileWidth = this.getHeight();
+				final int tileHeight = this.getHeight();
 				synchronized (reusableTileBitmaps) {
-					int hash = composeHash(tileSize, this.bitmap.hasAlpha());
+					int hash = composeHash(tileWidth, tileHeight, this.bitmap.hasAlpha());
 					if (!reusableTileBitmaps.containsKey(hash)) {
 						// if the set specific to the tile size does not exist, create it. It will
 						// never be destroyed, but the contained bitmaps will be recycled if memory
@@ -204,7 +205,7 @@ public class AndroidTileBitmap extends AndroidBitmap implements TileBitmap {
 	}
 
 	@TargetApi(11)
-	private BitmapFactory.Options createTileBitmapFactoryOptions(int tileSize, boolean isTransparent) {
+	private BitmapFactory.Options createTileBitmapFactoryOptions(int tileWidth, int tileHeight, boolean isTransparent) {
 		BitmapFactory.Options bitmapFactoryOptions = new BitmapFactory.Options();
 		if (isTransparent) {
 			bitmapFactoryOptions.inPreferredConfig = AndroidGraphicFactory.TRANSPARENT_BITMAP;
@@ -212,12 +213,12 @@ public class AndroidTileBitmap extends AndroidBitmap implements TileBitmap {
 			bitmapFactoryOptions.inPreferredConfig = AndroidGraphicFactory.NON_TRANSPARENT_BITMAP;
 		}
 		if (org.mapsforge.map.android.util.AndroidUtil.HONEYCOMB_PLUS) {
-			android.graphics.Bitmap reusableBitmap = getTileBitmapFromReusableSet(tileSize, isTransparent);
+			android.graphics.Bitmap reusableBitmap = getTileBitmapFromReusableSet(tileWidth, tileHeight, isTransparent);
 			if (reusableBitmap != null) {
 				bitmapFactoryOptions.inMutable = true;
 				bitmapFactoryOptions.inSampleSize = 1; // not really sure why this is required, but otherwise decoding
 														// fails
-				bitmapFactoryOptions.inBitmap = getTileBitmapFromReusableSet(tileSize, isTransparent);
+				bitmapFactoryOptions.inBitmap = getTileBitmapFromReusableSet(tileWidth, tileHeight, isTransparent);
 			}
 		}
 		return bitmapFactoryOptions;

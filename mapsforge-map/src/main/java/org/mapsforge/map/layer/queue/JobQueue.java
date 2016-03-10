@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.model.MapViewPosition;
 
@@ -30,10 +31,12 @@ public class JobQueue<T extends Job> {
 	private final MapViewPosition mapViewPosition;
 	private final List<QueueItem<T>> queueItems = new LinkedList<QueueItem<T>>();
 	private boolean scheduleNeeded;
+	private final MapModel mapModel;
 
-	public JobQueue(MapViewPosition mapViewPosition, DisplayModel displayModel) {
+	public JobQueue(MapViewPosition mapViewPosition, DisplayModel displayModel, MapModel mapModel) {
 		this.mapViewPosition = mapViewPosition;
 		this.displayModel = displayModel;
+		this.mapModel = mapModel;
 	}
 
 	public synchronized void add(T job) {
@@ -56,7 +59,7 @@ public class JobQueue<T extends Job> {
 
 		if (this.scheduleNeeded) {
 			this.scheduleNeeded = false;
-			schedule(displayModel.getTileSize());
+			schedule();
 		}
 
 		T job = this.queueItems.remove(0).object;
@@ -81,8 +84,8 @@ public class JobQueue<T extends Job> {
 		return this.queueItems.size();
 	}
 
-	private void schedule(int tileSize) {
-		QueueItemScheduler.schedule(this.queueItems, this.mapViewPosition.getMapPosition(), tileSize);
+	private void schedule() {
+		QueueItemScheduler.schedule(this.queueItems, this.mapViewPosition.getMapPosition(), mapModel);
 		Collections.sort(this.queueItems, QueueItemComparator.INSTANCE);
 		trimToSize();
 	}

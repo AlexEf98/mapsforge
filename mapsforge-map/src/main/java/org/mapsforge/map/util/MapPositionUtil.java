@@ -20,40 +20,41 @@ import org.mapsforge.core.model.Dimension;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Point;
-import org.mapsforge.core.util.MercatorProjection;
+import org.mapsforge.core.util.MapProjection;
+import org.mapsforge.map.model.DisplayModel;
 
 public final class MapPositionUtil {
-	public static BoundingBox getBoundingBox(MapPosition mapPosition, Dimension canvasDimension, int tileSize) {
+	public static BoundingBox getBoundingBox(MapPosition mapPosition, Dimension canvasDimension, DisplayModel displayModel) {
 
-		long mapSize = MercatorProjection.getMapSize(mapPosition.zoomLevel, tileSize);
-		double pixelX = MercatorProjection.longitudeToPixelX(mapPosition.latLong.longitude, mapSize);
-		double pixelY = MercatorProjection.latitudeToPixelY(mapPosition.latLong.latitude, mapSize);
+		MapProjection projection = displayModel.getProjection(mapPosition.zoomLevel);
+		double pixelX = projection.longitudeToPixelX(mapPosition.latLong.longitude);
+		double pixelY = projection.latitudeToPixelY(mapPosition.latLong.latitude);
 
 		int halfCanvasWidth = canvasDimension.width / 2;
 		int halfCanvasHeight = canvasDimension.height / 2;
 
 		double pixelXMin = Math.max(0, pixelX - halfCanvasWidth);
 		double pixelYMin = Math.max(0, pixelY - halfCanvasHeight);
-		double pixelXMax = Math.min(mapSize, pixelX + halfCanvasWidth);
-		double pixelYMax = Math.min(mapSize, pixelY + halfCanvasHeight);
+		double pixelXMax = Math.min(projection.getMapWidth(), pixelX + halfCanvasWidth);
+		double pixelYMax = Math.min(projection.getMapHeight(), pixelY + halfCanvasHeight);
 
-		double minLatitude = MercatorProjection.pixelYToLatitude(pixelYMax, mapSize);
-		double minLongitude = MercatorProjection.pixelXToLongitude(pixelXMin, mapSize);
-		double maxLatitude = MercatorProjection.pixelYToLatitude(pixelYMin, mapSize);
-		double maxLongitude = MercatorProjection.pixelXToLongitude(pixelXMax, mapSize);
+		double minLatitude = projection.pixelYToLatitude(pixelYMax);
+		double minLongitude = projection.pixelXToLongitude(pixelXMin);
+		double maxLatitude = projection.pixelYToLatitude(pixelYMin);
+		double maxLongitude = projection.pixelXToLongitude(pixelXMax);
 
 		return new BoundingBox(minLatitude, minLongitude, maxLatitude, maxLongitude);
 	}
 
-	public static Point getTopLeftPoint(MapPosition mapPosition, Dimension canvasDimension, int tileSize) {
+	public static Point getTopLeftPoint(MapPosition mapPosition, Dimension canvasDimension, DisplayModel displayModel) {
 		LatLong centerPoint = mapPosition.latLong;
 
 		int halfCanvasWidth = canvasDimension.width / 2;
 		int halfCanvasHeight = canvasDimension.height / 2;
 
-		long mapSize = MercatorProjection.getMapSize(mapPosition.zoomLevel, tileSize);
-		double pixelX = Math.round(MercatorProjection.longitudeToPixelX(centerPoint.longitude, mapSize));
-		double pixelY = Math.round(MercatorProjection.latitudeToPixelY(centerPoint.latitude, mapSize));
+		MapProjection projection = displayModel.getProjection(mapPosition.zoomLevel);
+		double pixelX = Math.round(projection.longitudeToPixelX(centerPoint.longitude));
+		double pixelY = Math.round(projection.latitudeToPixelY(centerPoint.latitude));
 		return new Point((int) pixelX - halfCanvasWidth, (int) pixelY - halfCanvasHeight);
 	}
 

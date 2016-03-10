@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.mapsforge.core.model.Tag;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.renderer.PolylineContainer;
 import org.mapsforge.map.reader.PointOfInterest;
 import org.mapsforge.map.rendertheme.RenderCallback;
@@ -86,14 +87,14 @@ abstract class Rule {
 	}
 
 	void matchWay(RenderCallback renderCallback, PolylineContainer way, Tile tile, Closed closed,
-			List<RenderInstruction> matchingList) {
+			List<RenderInstruction> matchingList, MapModel mapModel) {
 		if (matchesWay(way.getTags(), tile.zoomLevel, closed)) {
 			for (int i = 0, n = this.renderInstructions.size(); i < n; ++i) {
-				this.renderInstructions.get(i).renderWay(renderCallback, way);
+				this.renderInstructions.get(i).renderWay(renderCallback, way, mapModel);
 				matchingList.add(this.renderInstructions.get(i));
 			}
 			for (int i = 0, n = this.subRules.size(); i < n; ++i) {
-				this.subRules.get(i).matchWay(renderCallback, way, tile, closed, matchingList);
+				this.subRules.get(i).matchWay(renderCallback, way, tile, closed, matchingList, mapModel);
 			}
 		}
 	}

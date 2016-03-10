@@ -15,6 +15,7 @@
 package org.mapsforge.map.reader.header;
 
 import org.mapsforge.core.model.BoundingBox;
+import org.mapsforge.core.util.MapModel;
 
 class SubFileParameterBuilder {
 	byte baseZoomLevel;
@@ -25,7 +26,7 @@ class SubFileParameterBuilder {
 	byte zoomLevelMax;
 	byte zoomLevelMin;
 
-	SubFileParameter build() {
-		return new SubFileParameter(this);
+	SubFileParameter build(MapModel model) {
+		return new SubFileParameter(this, model);
 	}
 }

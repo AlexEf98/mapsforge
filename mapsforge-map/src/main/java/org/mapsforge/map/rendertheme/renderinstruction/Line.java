@@ -27,6 +27,7 @@ import org.mapsforge.core.graphics.Join;
 import org.mapsforge.core.graphics.Paint;
 import org.mapsforge.core.graphics.Style;
 import org.mapsforge.core.model.Tile;
+import org.mapsforge.core.util.MapModel;
 import org.mapsforge.map.layer.renderer.PolylineContainer;
 import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.reader.PointOfInterest;
@@ -77,7 +78,7 @@ public class Line extends RenderInstruction {
 	}
 
 	@Override
-	public void renderWay(RenderCallback renderCallback, PolylineContainer way) {
+	public void renderWay(RenderCallback renderCallback, PolylineContainer way, MapModel mapModel) {
 		if (!bitmapCreated) {
 			try {
 				Bitmap shaderBitmap = createBitmap(relativePathPrefix, src);
@@ -91,7 +92,7 @@ public class Line extends RenderInstruction {
 			bitmapCreated = true;
 		}
 
-		this.stroke.setBitmapShaderShift(way.getTile().getOrigin());
+		this.stroke.setBitmapShaderShift(way.getTile().getOrigin(mapModel));
 
 		renderCallback.renderWay(way, this.stroke, this.dyScaled, this.level);
 	}
