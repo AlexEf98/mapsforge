@@ -22,3 +22,9 @@ build/
 *~
 [#]*[#]
 .\#*
+
+# Android
+local.properties
+
+# gradle
+gradle.properties
