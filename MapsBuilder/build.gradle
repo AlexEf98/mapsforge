@@ -6,13 +6,8 @@ import org.mapsforge.core.util.MapProjection;
 buildscript {
     dependencies {
         classpath files("libs/mapsforge-core-0.5.1.jar")
-        //classpath project(":mapsforge-core")
     }
 }
-
-/*dependencies {
-    compile project(":mapsforge-core")
-}*/
 
 println "name=" + project.name
 println "path=" + project.path
@@ -32,10 +27,10 @@ ext {
     yCellCount = 16
     zoomConf = "7,4,8,11,9,18"
     tagConfZoomShift = 3
-    tagConfigFilePath = mapDataPath + "/type1/"+ "tag-mapping.xml"
+    tagConfigFilePath = mapDataPath + "/type2/"+ "tag-mapping.xml"
 }
 
-tasks.addRule("Pattern: osmCell<ID>") { String taskName ->
+tasks.addRule("Pattern: osmCellX<ID>Y<ID>") { String taskName ->
     if (taskName.startsWith("osmCell")) {
         def value = (taskName - 'osmCell')
         def cellPattern = /X(\d+)Y(\d+)/
@@ -44,22 +39,22 @@ tasks.addRule("Pattern: osmCell<ID>") { String taskName ->
             cell.find()
             def x = cell.group(1)
             def y = cell.group(2)
-            println "osmCell: x=" + x
-            println "osmCell: y=" + y
+            //println "osmCell: x=" + x
+            //println "osmCell: y=" + y
             task(taskName, type:OsmCell) {
                 tasks[taskName].x = Integer.parseInt(x)
                 tasks[taskName].y = Integer.parseInt(y)
-                println "osmCell: " + value
+                //println "osmCell: " + value
             }
         } else {
-            println "osmCell invalid task: " + value
+            //println "osmCell invalid task: " + value
         }
     } else {
-        println "Other task: " + taskName
+        //println "Other task: " + taskName
     }
 }
 
-tasks.addRule("Pattern: osmCellArea<ID>") { String taskName ->
+tasks.addRule("Pattern: osmCellAreaX<ID>X<ID>Y<ID>Y<ID>") { String taskName ->
     if (taskName.startsWith("osmCellArea")) {
         def value = (taskName - 'osmCellArea')
         def cellPattern = /X(\d+)X(\d+)Y(\d+)Y(\d+)/
@@ -78,14 +73,14 @@ tasks.addRule("Pattern: osmCellArea<ID>") { String taskName ->
                 }
             }
         } else {
-            println "osmCellArea invalid task: " + value
+            //println "osmCellArea invalid task: " + value
         }
     } else {
-        println "Other task: " + taskName
+        //println "Other task: " + taskName
     }
 }
 
-tasks.addRule("Pattern: mapsforgeCell<ID>") { String taskName ->
+tasks.addRule("Pattern: mapsforgeCellX<ID>Y<ID>") { String taskName ->
     if (taskName.startsWith("mapsforgeCell")) {
         def value = (taskName - 'mapsforgeCell')
         def cellPattern = /X(\d+)Y(\d+)/
@@ -99,11 +94,41 @@ tasks.addRule("Pattern: mapsforgeCell<ID>") { String taskName ->
                 tasks[taskName].y = Integer.parseInt(y)
             }
         } else {
-            println "mapsforgeCell invalid task: " + value
+            //println "mapsforgeCell invalid task: " + value
         }
     } else {
-        println "Other task: " + taskName
+        //println "Other task: " + taskName
     }
+}
+
+tasks.addRule("Pattern: mapsforgeAreaX<ID>X<ID>Y<ID>Y<ID>") { String taskName ->
+    if (taskName.startsWith("mapsforgeArea")) {
+        def value = (taskName - 'mapsforgeArea')
+        def cellPattern = /X(\d+)X(\d+)Y(\d+)Y(\d+)/
+        if (value ==~ cellPattern) {
+            def cell = (value =~ cellPattern)
+            cell.find()
+            def x1 = Integer.parseInt(cell.group(1))
+            def x2 =  Integer.parseInt(cell.group(2))
+            def y1 =  Integer.parseInt(cell.group(3))
+            def y2 =  Integer.parseInt(cell.group(4))
+            task(taskName) {
+                for(int x=x1; x<=x2; x++) {
+                    for(int y=y1; y<=y2; y++) {
+                        dependsOn "mapsforgeCellX"+x +"Y" +y
+                    }
+                }
+            }
+        } else {
+            //println "mapsforgeArea invalid task: " + value
+        }
+    } else {
+        //println "Other task: " + taskName
+    }
+}
+
+task allMapsforgeCells {
+    dependsOn "mapsforgeAreaX0X"+(xCellCount -1) +"Y0Y" + (yCellCount-1)
 }
 
 task allOsmCells {
@@ -175,7 +200,6 @@ class MapsforgeCell extends DefaultTask {
             args "tag-conf-file="+srcTagConfig.path
             args "bbox="+rect
         }
-        //new File(part).text = name
     }
 }
 
@@ -228,6 +252,5 @@ class OsmCell extends DefaultTask {
             args srcOsmMapData.path
             args "-b="+rect, "-o="+part
         }
-        //new File(part).text = name
     }
 }
