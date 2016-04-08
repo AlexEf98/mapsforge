@@ -160,6 +160,8 @@ class MapsforgeCell extends DefaultTask {
     @InputFile
     def File srcTagConfig = project.file(project.ext.tagConfigFilePath)
 
+    final double CELL_GUARD = 0.000001
+
     @TaskAction
     def work() {
         if (x <0 || x > xCellCount || y< 0 || y > yCellCount) {
@@ -173,13 +175,13 @@ class MapsforgeCell extends DefaultTask {
         double dw = mapProjection.getMapWidth() / xCellCount
         double x1 = dw * x
         double x2 = x1 + dw
-        double lonMin = mapProjection.pixelXToLongitude(x1)
-        double lonMax = mapProjection.pixelXToLongitude(x2)
+        double lonMin = mapProjection.pixelXToLongitude(x1) + CELL_GUARD
+        double lonMax = mapProjection.pixelXToLongitude(x2) - CELL_GUARD
         double dh = mapProjection.getMapHeight() / yCellCount
         double y1 = dh * y
         double y2 = y1 + dh
-        double latMax = mapProjection.pixelYToLatitude(y1)
-        double latMin = mapProjection.pixelYToLatitude(y2)
+        double latMax = mapProjection.pixelYToLatitude(y1) - CELL_GUARD
+        double latMin = mapProjection.pixelYToLatitude(y2) + CELL_GUARD
 
         println "MapsforgeCell name=" + name + " lonMin=" + lonMin + " lonMax=" + lonMax
         println "MapsforgeCell name=" + name + " latMin=" + latMin + " latMax=" + latMax
